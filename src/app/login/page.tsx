@@ -5,6 +5,21 @@ const ERRORS: Record<string, string> = {
   callback: "로그인을 마무리하지 못했어요. 다시 시도해 주세요.",
 };
 
+/** 로그인 실패 이유(reason)를 사람이 할 수 있는 조치로 바꾼다 */
+function hintFor(reason: string): string | undefined {
+  const r = reason.toLowerCase();
+  if (r.includes("verifier") || r.includes("flow_state") || r.includes("flow state")) {
+    return "로그인을 시작한 브라우저와 끝난 브라우저가 달라요. 카카오톡·인스타그램 등 앱 안에서 열었다면 Safari나 Chrome에서 사이트를 직접 연 뒤 처음부터 다시 시도해 주세요. 주소가 여러 개(미리보기 주소 등)라면 Supabase Site URL과 같은 주소로 접속해 주세요.";
+  }
+  if (r === "no_code") {
+    return "로그인 정보가 돌아오지 않았어요. Supabase → Authentication → URL Configuration의 Redirect URLs에 지금 접속한 주소가 등록돼 있는지 확인해 주세요.";
+  }
+  if (r.includes("expired") || r.includes("already used") || r.includes("bad_code")) {
+    return "로그인 시간이 지났거나 이미 사용한 로그인이에요. 처음부터 다시 시도해 주세요.";
+  }
+  return undefined;
+}
+
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden>
@@ -20,6 +35,8 @@ export default async function Login({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
   const next = safeNext(typeof params.next === "string" ? params.next : undefined);
   const error = typeof params.error === "string" ? ERRORS[params.error] : undefined;
+  const reason = typeof params.reason === "string" ? params.reason : "";
+  const hint = reason ? hintFor(reason) : undefined;
 
   return (
     <div className="mx-auto mt-16 max-w-sm">
@@ -37,7 +54,13 @@ export default async function Login({ searchParams }: PageProps<"/login">) {
           구글로 계속하기
         </a>
         <p className="text-xs text-muted">처음이면 자동으로 가입돼요.</p>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && (
+          <div className="space-y-1 text-sm">
+            <p className="text-red-600">{error}</p>
+            {hint && <p className="text-left text-xs text-muted">{hint}</p>}
+            {reason && <p className="break-all text-left text-[11px] text-muted">오류 코드: {reason}</p>}
+          </div>
+        )}
       </div>
     </div>
   );

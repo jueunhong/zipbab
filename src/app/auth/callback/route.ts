@@ -9,10 +9,17 @@ export async function GET(request: Request) {
   const code = searchParams.get("code");
   const next = safeNext(searchParams.get("next"));
 
+  // 구글·Supabase 쪽에서 실패하면 code 대신 error_description 이 붙어서 온다
+  let reason = searchParams.get("error_description") ?? searchParams.get("error") ?? "";
   if (code) {
     const { error } = await (await supabase()).auth.exchangeCodeForSession(code);
     if (!error) return NextResponse.redirect(`${origin}${next}`);
-    console.error(error);
+    console.error("[auth/callback]", error);
+    reason = error.code ?? error.message;
+  } else if (!reason) {
+    reason = "no_code";
   }
-  return NextResponse.redirect(`${origin}/login?error=callback`);
+
+  const params = new URLSearchParams({ error: "callback", reason: reason.slice(0, 200) });
+  return NextResponse.redirect(`${origin}/login?${params}`);
 }
