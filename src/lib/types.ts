@@ -90,11 +90,17 @@ export type MealSlot = (typeof MEAL_SLOTS)[number];
 
 const DateString = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "날짜 형식이 올바르지 않아요.");
 
-export const PlanInputSchema = z.object({
-  date: DateString,
-  slot: z.enum(MEAL_SLOTS).default("저녁"),
-  recipe: RecipeSchema,
-});
+// 식단 추가: AI·찜 레시피(recipe), 내 레시피(myRecipeId + title), 또는 메뉴 이름만(title)
+export const PlanInputSchema = z
+  .object({
+    date: DateString,
+    slot: z.enum(MEAL_SLOTS).default("저녁"),
+    title: z.string().trim().max(100).optional(),
+    recipe: RecipeSchema.optional(),
+    myRecipeId: z.uuid().optional(),
+  })
+  .refine((p) => p.recipe || p.title, { message: "메뉴 이름을 입력해 주세요." });
+export type PlanInput = z.infer<typeof PlanInputSchema>;
 
 export const PlanUpdateSchema = z.object({
   date: DateString.optional(),
@@ -107,6 +113,7 @@ export type MealPlan = {
   slot: MealSlot;
   title: string;
   recipe?: Recipe;
+  myRecipeId: string | null;
   mealId: string | null;
   createdAt: string;
 };

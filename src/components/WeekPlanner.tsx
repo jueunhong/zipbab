@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import QuickAddPlan from "@/components/QuickAddPlan";
 import RecipeCard from "@/components/RecipeCard";
 import { addDays, shortLabel, today, weekStart, weekdayLabel } from "@/lib/dates";
 import { MEAL_SLOTS, type Meal, type MealPlan, type MealSlot } from "@/lib/types";
@@ -25,6 +26,7 @@ export default function WeekPlanner() {
   const [reload, setReload] = useState(0);
   const [openPlan, setOpenPlan] = useState<MealPlan | null>(null);
   const [openMeal, setOpenMeal] = useState<Meal | null>(null);
+  const [addingDate, setAddingDate] = useState<string | null>(null);
 
   const end = addDays(start, 6);
   const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
@@ -59,7 +61,7 @@ export default function WeekPlanner() {
   function cookedIt(plan: MealPlan) {
     if (plan.recipe) sessionStorage.setItem("zipbab:pendingRecipe", JSON.stringify(plan.recipe));
     else sessionStorage.removeItem("zipbab:pendingRecipe");
-    sessionStorage.setItem("zipbab:pendingPlan", JSON.stringify({ planId: plan.id, date: plan.date }));
+    sessionStorage.setItem("zipbab:pendingPlan", JSON.stringify({ planId: plan.id, date: plan.date, title: plan.title }));
     router.push("/journal?new=1");
   }
 
@@ -140,20 +142,31 @@ export default function WeekPlanner() {
                 </button>
               ))}
 
-              <Link
-                href={`/?planDate=${day}`}
+              <button
+                onClick={() => setAddingDate(day)}
                 className="mt-auto rounded-lg border border-dashed border-line py-1.5 text-center text-xs text-muted hover:border-accent hover:text-accent"
               >
-                + 추천받기
-              </Link>
+                + 추가
+              </button>
             </section>
           );
         })}
       </div>
 
       <p className="text-xs text-muted">
-        추천받은 레시피나 찜한 레시피에서 <b>📅 식단에 추가</b>를 누르면 여기에 들어가요. 식단을 누르고 <b>만들었어요</b>로 사진을 남기면 그 칸에 사진이 떠요.
+        날짜 칸의 <b>+ 추가</b>로 메뉴를 바로 넣거나, 추천·찜한 레시피에서 <b>📅 식단에 추가</b>를 눌러도 돼요. 식단을 누르고 <b>만들었어요</b>로 사진을 남기면 그 칸에 사진이 떠요.
       </p>
+
+      {addingDate && (
+        <QuickAddPlan
+          date={addingDate}
+          onClose={() => setAddingDate(null)}
+          onAdded={() => {
+            setAddingDate(null);
+            setReload((n) => n + 1);
+          }}
+        />
+      )}
 
       {openPlan && (
         <PlanDetail
@@ -282,6 +295,11 @@ function PlanDetail({
         </div>
 
         {plan.recipe && <RecipeCard recipe={plan.recipe} withImage={!meal} />}
+        {plan.myRecipeId && (
+          <Link href={`/my-recipes?open=${plan.myRecipeId}`} className="card block text-center text-sm text-accent">
+            ✍️ 내 레시피에서 만드는 법 보기 →
+          </Link>
+        )}
 
         <button className="w-full rounded-lg bg-surface py-2 text-sm" onClick={onClose}>
           닫기

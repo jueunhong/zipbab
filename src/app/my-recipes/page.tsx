@@ -76,7 +76,13 @@ export default function MyRecipes() {
   useEffect(() => {
     fetch("/api/my-recipes")
       .then(async (res) => ({ ok: res.ok, data: await res.json() }))
-      .then(({ ok, data }) => (ok ? setRecipes(data.recipes) : setError(data.error)));
+      .then(({ ok, data }) => {
+        if (!ok) return setError(data.error);
+        setRecipes(data.recipes);
+        // 식단에서 "내 레시피에서 보기"로 왔으면 그 레시피를 펼친다 (/my-recipes?open=id)
+        const open = new URLSearchParams(location.search).get("open");
+        if (open) setOpenId(open);
+      });
   }, []);
 
   async function remove(recipe: MyRecipe) {

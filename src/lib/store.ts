@@ -1,7 +1,7 @@
 import path from "path";
 import { todayIn } from "./dates";
 import { currentUser, PHOTO_BUCKET, supabase } from "./supabase";
-import type { Meal, MealPlan, MealSlot, MyRecipe, MyRecipeInput, Nutrition, PantryCategory, PantryItem, Recipe, SavedRecipe } from "./types";
+import type { Meal, MealPlan, MealSlot, PlanInput, MyRecipe, MyRecipeInput, Nutrition, PantryCategory, PantryItem, Recipe, SavedRecipe } from "./types";
 
 // 저장소: Supabase (Postgres 테이블 pantry_items, meals, recipe_usage + Storage 버킷 photos)
 // 스키마는 supabase/*.sql 참고. DB 컬럼은 snake_case, 앱 타입은 camelCase 라서 여기서 변환한다.
@@ -249,6 +249,7 @@ type MealPlanRow = {
   slot: MealSlot;
   title: string;
   recipe: Recipe | null;
+  my_recipe_id: string | null;
   meal_id: string | null;
   created_at: string;
 };
@@ -256,7 +257,16 @@ type MealPlanRow = {
 const SLOT_ORDER: Record<MealSlot, number> = { 아침: 0, 점심: 1, 저녁: 2 };
 
 function toMealPlan(r: MealPlanRow): MealPlan {
-  return { id: r.id, date: r.plan_date, slot: r.slot, title: r.title, recipe: r.recipe ?? undefined, mealId: r.meal_id, createdAt: r.created_at };
+  return {
+    id: r.id,
+    date: r.plan_date,
+    slot: r.slot,
+    title: r.title,
+    recipe: r.recipe ?? undefined,
+    myRecipeId: r.my_recipe_id ?? null,
+    mealId: r.meal_id,
+    createdAt: r.created_at,
+  };
 }
 
 /** from~to(양 끝 포함) 기간의 식단. 날짜 → 아침·점심·저녁 순 */
@@ -273,11 +283,18 @@ export async function listPlans(range: { from: string; to: string }): Promise<Me
   return rows.map(toMealPlan).sort((a, b) => a.date.localeCompare(b.date) || SLOT_ORDER[a.slot] - SLOT_ORDER[b.slot]);
 }
 
-export async function addPlan(plan: { date: string; slot: MealSlot; recipe: Recipe }): Promise<MealPlan> {
+export async function addPlan(plan: PlanInput): Promise<MealPlan> {
   const row = check<MealPlanRow>(
     await (await supabase())
       .from("meal_plans")
-      .insert({ plan_date: plan.date, slot: plan.slot, title: plan.recipe.title, recipe: plan.recipe })
+      .insert({
+        plan_date: plan.date,
+        slot: plan.slot,
+        title: plan.recipe?.title ?? plan.title,
+        recipe: plan.recipe ?? null,
+        // 6번 SQL 전에도 동작하도록 내 레시피일 때만 컬럼을 보낸다
+        ...(plan.myRecipeId ? { my_recipe_id: plan.myRecipeId } : {}),
+      })
       .select()
       .single(),
   );

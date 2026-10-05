@@ -13,7 +13,7 @@ export default function Journal() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [pendingRecipe, setPendingRecipe] = useState<Recipe | null>(null);
   // 식단에서 "만들었어요"로 온 경우: 그 식단 칸과 날짜
-  const [pendingPlan, setPendingPlan] = useState<{ planId: string; date: string } | null>(null);
+  const [pendingPlan, setPendingPlan] = useState<{ planId: string; date: string; title?: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const photo = usePhoto();
   const [saving, setSaving] = useState(false);
@@ -96,7 +96,7 @@ export default function Journal() {
           {pendingRecipe && <p className="text-sm">🍳 <b>{pendingRecipe.title}</b> 레시피와 함께 저장돼요.</p>}
           <PhotoPicker preview={photo.preview} onPick={pickPhoto} />
           <div className="grid grid-cols-2 gap-3">
-            <input name="title" className="input" placeholder="요리 이름" defaultValue={pendingRecipe?.title ?? ""} />
+            <input name="title" className="input" placeholder="요리 이름" defaultValue={pendingRecipe?.title ?? pendingPlan?.title ?? ""} />
             <input name="date" type="date" className="input" defaultValue={pendingPlan?.date ?? today()} />
           </div>
           <textarea name="memo" className="input min-h-20" placeholder="맛은 어땠나요? 다음엔 뭘 바꿔볼까요?" />
