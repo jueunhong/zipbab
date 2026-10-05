@@ -1,26 +1,57 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #faf7f2;
+  --foreground: #2b2622;
+  --surface: #ffffff;
+  --muted: #7a7068;
+  --line: #e8e1d8;
+  --accent: #d9622b;
+  --carbs: #e0a530;
+  --protein: #d9622b;
+  --fat: #5b8c5a;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #181614;
+    --foreground: #eee8e2;
+    --surface: #221f1c;
+    --muted: #a59b92;
+    --line: #36312c;
+    --accent: #f08a54;
+    --carbs: #e8b955;
+    --protein: #f08a54;
+    --fat: #7fb07e;
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-surface: var(--surface);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-carbs: var(--carbs);
+  --color-protein: var(--protein);
+  --color-fat: var(--fat);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
+}
+
+.input {
+  @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent;
+}
+
+.btn {
+  @apply rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50;
+}
+
+.card {
+  @apply rounded-2xl border border-line bg-surface p-5;
 }

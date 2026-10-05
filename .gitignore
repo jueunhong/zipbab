@@ -39,3 +39,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# 설정값 목록(값 없음)은 올린다
+!.env.example
