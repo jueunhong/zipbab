@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/auth/login", "/auth/callback", "/api/config-check"];
+const PUBLIC_PATHS = ["/login", "/auth/login", "/auth/callback"];
 
 // 매 요청마다 Supabase 세션을 확인하고(만료됐으면 갱신해서 쿠키에 다시 써준다),
 // 로그인하지 않았으면 페이지는 /login 으로, API 는 401 로 돌려보낸다.
