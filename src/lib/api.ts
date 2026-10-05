@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { RecipeRefusedError } from "./claude";
 import { countRecipeUsageToday, recordRecipeUsage } from "./store";
+import { currentUser, supabase } from "./supabase";
 
 /** 라우트 핸들러에서 던진 오류를 { error } JSON 응답으로 바꿔준다 */
 export function withErrors<Args extends unknown[]>(handler: (...args: Args) => Promise<Response>) {
@@ -29,18 +30,32 @@ export function photoError(photo: FormDataEntryValue | null, { required }: { req
 // 누구나 가입할 수 있으므로 한 사람이 API 요금을 과하게 쓰지 못하게 막는다 (레시피 추천 + 영양 계산 합산)
 const DAILY_AI_LIMIT = Number(process.env.RECIPE_DAILY_LIMIT) || 10;
 
+// 관리자(사이트 주인)는 횟수 제한 없음. ADMIN_EMAILS=a@x.com,b@y.com
+const ADMIN_EMAILS = new Set(
+  (process.env.ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean),
+);
+
+async function isAdmin(): Promise<boolean> {
+  if (ADMIN_EMAILS.size === 0) return false;
+  const user = await currentUser(await supabase());
+  return Boolean(user?.email && ADMIN_EMAILS.has(user.email.toLowerCase()));
+}
+
 /** Claude 를 부르기 전에 호출. 오늘 한도를 넘었거나 키가 없으면 돌려줄 응답을, 괜찮으면 null 을 준다 (그리고 사용 1회 기록) */
 export async function consumeAiQuota(): Promise<Response | null> {
   if (!process.env.ANTHROPIC_API_KEY) {
     return Response.json({ error: "API 키가 설정되지 않았어요. .env.local에 ANTHROPIC_API_KEY를 넣고 서버를 다시 시작해 주세요." }, { status: 500 });
   }
-  if ((await countRecipeUsageToday()) >= DAILY_AI_LIMIT) {
+  if (!(await isAdmin()) && (await countRecipeUsageToday()) >= DAILY_AI_LIMIT) {
     return Response.json(
       { error: `오늘은 AI 기능(레시피 추천·영양 계산)을 ${DAILY_AI_LIMIT}번 모두 사용했어요. 내일 다시 이용해 주세요.` },
       { status: 429 },
     );
   }
-  await recordRecipeUsage();
+  await recordRecipeUsage(); // 관리자도 사용량은 기록한다
   return null;
 }
 
