@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import MyRecipeForm from "@/components/MyRecipeForm";
 import RecipeBookTabs from "@/components/RecipeBookTabs";
 import { MacroBar } from "@/components/RecipeCard";
-import type { MyRecipe } from "@/lib/types";
+import type { MyRecipe, MyRecipeInput } from "@/lib/types";
 
 function MyRecipeView({ recipe }: { recipe: MyRecipe }) {
   return (
@@ -65,6 +65,8 @@ export default function MyRecipes() {
   // null: 목록, "new": 새로 쓰기, MyRecipe: 그 레시피 수정
   const [editing, setEditing] = useState<MyRecipe | "new" | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  // 추천 화면에서 "직접 고쳐서 내 레시피로"로 왔을 때 채워 둘 내용
+  const [draft, setDraft] = useState<MyRecipeInput | null>(null);
 
   const load = useCallback(async () => {
     const res = await fetch("/api/my-recipes");
@@ -80,10 +82,21 @@ export default function MyRecipes() {
         if (!ok) return setError(data.error);
         setRecipes(data.recipes);
         // 식단에서 "내 레시피에서 보기"로 왔으면 그 레시피를 펼친다 (/my-recipes?open=id)
-        const open = new URLSearchParams(location.search).get("open");
+        const params = new URLSearchParams(location.search);
+        const open = params.get("open");
         if (open) setOpenId(open);
+        const stored = sessionStorage.getItem("zipbab:myRecipeDraft");
+        if (params.get("new") && stored) {
+          setDraft(JSON.parse(stored));
+          setEditing("new");
+        }
       });
   }, []);
+
+  function clearDraft() {
+    sessionStorage.removeItem("zipbab:myRecipeDraft");
+    setDraft(null);
+  }
 
   async function remove(recipe: MyRecipe) {
     if (!confirm(`'${recipe.title}' 레시피를 삭제할까요? 되돌릴 수 없어요.`)) return;
@@ -99,8 +112,13 @@ export default function MyRecipes() {
         <RecipeBookTabs active="mine" />
         <MyRecipeForm
           editing={editing === "new" ? undefined : editing}
-          onCancel={() => setEditing(null)}
+          initial={editing === "new" ? (draft ?? undefined) : undefined}
+          onCancel={() => {
+            clearDraft();
+            setEditing(null);
+          }}
           onSaved={() => {
+            clearDraft();
             setEditing(null);
             load();
           }}
@@ -117,7 +135,7 @@ export default function MyRecipes() {
           <h1 className="text-2xl font-bold">내 레시피</h1>
           <p className="mt-1 text-sm text-muted">{recipes ? `직접 만든 레시피 ${recipes.length}개` : "불러오는 중…"}</p>
         </div>
-        <button className="btn" onClick={() => setEditing("new")}>
+        <button className="btn" onClick={() => { clearDraft(); setEditing("new"); }}>
           + 새 레시피
         </button>
       </div>

@@ -35,7 +35,8 @@ function buildUserPrompt(req: RecipeRequest): string {
 
 export class RecipeRefusedError extends Error {}
 
-export async function recommendRecipe(req: RecipeRequest): Promise<Recipe> {
+/** 시스템 프롬프트(레시피 원칙) + 사용자 요청으로 레시피 하나를 받는다 */
+async function generateRecipe(userContent: string): Promise<Recipe> {
   const response = await client.beta.messages.parse({
     model: "claude-opus-5-5",
     max_tokens: 16000,
@@ -47,7 +48,7 @@ export async function recommendRecipe(req: RecipeRequest): Promise<Recipe> {
       format: betaZodOutputFormat(RecipeOutputSchema),
     },
     system: SYSTEM_PROMPT,
-    messages: [{ role: "user", content: buildUserPrompt(req) }],
+    messages: [{ role: "user", content: userContent }],
   });
 
   if (response.stop_reason === "refusal") {
@@ -57,6 +58,28 @@ export async function recommendRecipe(req: RecipeRequest): Promise<Recipe> {
     throw new Error(`레시피 응답을 해석하지 못했어요 (stop_reason: ${response.stop_reason})`);
   }
   return response.parsed_output;
+}
+
+export async function recommendRecipe(req: RecipeRequest): Promise<Recipe> {
+  return generateRecipe(buildUserPrompt(req));
+}
+
+/** 추천받은 레시피를 사용자 요청대로 고친다 (예: "두부 대신 닭가슴살로", "더 맵게") */
+export async function reviseRecipe(recipe: Recipe, instruction: string): Promise<Recipe> {
+  return generateRecipe(
+    [
+      "아래 레시피를 사용자의 요청대로 고쳐 주세요.",
+      "- 요청한 부분만 바꾸고, 나머지(요리 콘셉트, 조리 순서, 분량)는 최대한 그대로 두세요.",
+      "- 재료가 바뀌면 그에 맞게 조리 단계·조리 시간·팁도 자연스럽게 고치고, 1인분 영양 수치와 balanceNote를 다시 계산하세요.",
+      "- 요청 때문에 탄·단·지 균형이 크게 깨지면, 요청은 지키되 균형을 맞출 방법을 팁에 한 줄 적어 주세요.",
+      "- 요리가 달라졌다면 title과 searchKeyword도 그에 맞게 바꾸세요.",
+      "",
+      `사용자 요청: ${instruction}`,
+      "",
+      "현재 레시피(JSON):",
+      JSON.stringify(recipe),
+    ].join("\n"),
+  );
 }
 
 const NutritionEstimateSchema = NutritionSchema.extend({

@@ -5,10 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import RecipeCard from "@/components/RecipeCard";
 import AddToPlanButton from "@/components/AddToPlanButton";
+import RecipeReviser from "@/components/RecipeReviser";
 import SaveButton from "@/components/SaveButton";
 import { shortLabel } from "@/lib/dates";
 import { dDayLabel, daysLeft, sortByExpiry } from "@/lib/pantry";
-import type { PantryItem, Recipe, SavedRecipe } from "@/lib/types";
+import type { MyRecipeInput, PantryItem, Recipe, SavedRecipe } from "@/lib/types";
 
 function describe(item: PantryItem): string {
   const days = daysLeft(item);
@@ -65,6 +66,8 @@ export default function Recommender() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [recipe, setRecipe] = useState<Recipe | null>(initial.recipe);
+  // 수정 요청 전의 레시피들 — "되돌리기"용
+  const [history, setHistory] = useState<{ recipe: Recipe; instruction: string }[]>([]);
   // 같은 조건에서 이미 추천받은 메뉴들 — "다른 레시피" 요청 시 겹치지 않게 제외한다
   const [seenTitles, setSeenTitles] = useState<string[]>(initial.seenTitles);
 
@@ -75,6 +78,7 @@ export default function Recommender() {
   function reset() {
     storeDraft(null);
     setRecipe(null);
+    setHistory([]);
     setSeenTitles([]);
     setIngredients("");
     setMaxMinutes(EMPTY_DRAFT.maxMinutes);
@@ -144,11 +148,42 @@ export default function Recommender() {
       storeDraft({ ...loadDraft(), recipe: data.recipe, seenTitles: nextSeen });
       setRecipe(data.recipe);
       setSeenTitles(nextSeen);
+      setHistory([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "알 수 없는 오류");
     } finally {
       setLoading(false);
     }
+  }
+
+  function applyRevision(next: Recipe, instruction: string) {
+    if (!recipe) return;
+    setHistory((h) => [...h, { recipe, instruction }]);
+    setRecipe(next);
+  }
+
+  function undoRevision() {
+    const last = history.at(-1);
+    if (!last) return;
+    setHistory((h) => h.slice(0, -1));
+    setRecipe(last.recipe);
+  }
+
+  // 직접 고치고 싶을 때: 이 레시피 내용을 채운 "내 레시피" 작성 화면으로 보낸다
+  function editAsMyRecipe() {
+    if (!recipe) return;
+    const draft: MyRecipeInput = {
+      title: recipe.title,
+      description: recipe.summary,
+      servings: recipe.servings,
+      cookTimeMinutes: recipe.cookTimeMinutes,
+      ingredients: recipe.ingredients,
+      steps: recipe.steps,
+      tips: recipe.tips.join("\n"),
+      nutrition: recipe.nutritionPerServing,
+    };
+    sessionStorage.setItem("zipbab:myRecipeDraft", JSON.stringify(draft));
+    router.push("/my-recipes?new=1");
   }
 
   function cookedIt() {
@@ -233,6 +268,14 @@ export default function Recommender() {
           <div className={loading ? "pointer-events-none animate-pulse opacity-40" : ""}>
             <RecipeCard recipe={recipe} withImage />
           </div>
+          {history.length > 0 && (
+            <div className="flex items-center justify-between gap-2 rounded-lg bg-accent/10 px-3 py-2 text-sm">
+              <span className="min-w-0 truncate">✏️ &lsquo;{history.at(-1)!.instruction}&rsquo; 반영했어요</span>
+              <button onClick={undoRevision} disabled={loading} className="shrink-0 text-xs text-accent underline">
+                되돌리기
+              </button>
+            </div>
+          )}
           <button onClick={cookedIt} className="btn w-full !py-3" disabled={loading}>📸 만들었어요! 사진 기록하기</button>
           <div className="flex gap-2">
             <SaveButton
@@ -250,6 +293,10 @@ export default function Recommender() {
             </button>
           </div>
           <AddToPlanButton key={recipe.title} recipe={recipe} defaultDate={planDate} />
+          <RecipeReviser recipe={recipe} disabled={loading} onRevised={applyRevision} />
+          <button onClick={editAsMyRecipe} disabled={loading} className="w-full text-center text-xs text-muted underline">
+            재료·단계를 직접 고쳐서 내 레시피로 저장하기
+          </button>
           {error && <p className="text-sm text-red-600">{error}</p>}
         </div>
       )}

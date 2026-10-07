@@ -15,27 +15,30 @@ const NUTRITION_FIELDS: { key: keyof Nutrition; label: string; unit: string }[] 
   { key: "fatG", label: "지방", unit: "g" },
 ];
 
-/** 내 레시피 작성·수정 폼. editing 이 있으면 수정 모드 */
+/** 내 레시피 작성·수정 폼. editing 이 있으면 수정 모드, initial 이 있으면 그 내용을 채운 새 레시피 */
 export default function MyRecipeForm({
   editing,
+  initial,
   onSaved,
   onCancel,
 }: {
   editing?: MyRecipe;
+  initial?: MyRecipeInput;
   onSaved: () => void;
   onCancel: () => void;
 }) {
-  const [title, setTitle] = useState(editing?.title ?? "");
-  const [description, setDescription] = useState(editing?.description ?? "");
-  const [servings, setServings] = useState(editing?.servings ?? 1);
-  const [cookTime, setCookTime] = useState(editing?.cookTimeMinutes?.toString() ?? "");
+  const base = editing ?? initial;
+  const [title, setTitle] = useState(base?.title ?? "");
+  const [description, setDescription] = useState(base?.description ?? "");
+  const [servings, setServings] = useState(base?.servings ?? 1);
+  const [cookTime, setCookTime] = useState(base?.cookTimeMinutes?.toString() ?? "");
   const [ingredients, setIngredients] = useState<Ingredient[]>(
-    editing?.ingredients.length ? editing.ingredients : [{ name: "", amount: "" }],
+    base?.ingredients.length ? base.ingredients : [{ name: "", amount: "" }],
   );
-  const [steps, setSteps] = useState<string[]>(editing?.steps.length ? editing.steps : [""]);
-  const [tips, setTips] = useState(editing?.tips ?? "");
+  const [steps, setSteps] = useState<string[]>(base?.steps.length ? base.steps : [""]);
+  const [tips, setTips] = useState(base?.tips ?? "");
   const [nutrition, setNutrition] = useState<Partial<Record<keyof Nutrition, string>>>(
-    editing?.nutrition ? Object.fromEntries(Object.entries(editing.nutrition).map(([k, v]) => [k, String(Math.round(v))])) : {},
+    base?.nutrition ? Object.fromEntries(Object.entries(base.nutrition).map(([k, v]) => [k, String(Math.round(v))])) : {},
   );
   const [nutritionNote, setNutritionNote] = useState("");
   const photo = usePhoto(editing?.photoUrl ?? null);
@@ -108,6 +111,7 @@ export default function MyRecipeForm({
   return (
     <form onSubmit={submit} className="card space-y-5">
       <h2 className="text-lg font-bold">{editing ? "레시피 수정" : "새 레시피"}</h2>
+      {initial && !editing && <p className="-mt-3 text-xs text-muted">추천받은 레시피를 채워 뒀어요. 원하는 대로 고친 뒤 저장하세요.</p>}
 
       <PhotoPicker
         preview={photo.preview}
