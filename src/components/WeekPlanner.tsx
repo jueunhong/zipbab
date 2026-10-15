@@ -15,6 +15,7 @@ import {
 } from "@dnd-kit/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { CookBadge, CookSection } from "@/components/CookPicker";
 import MealRatings from "@/components/MealRatings";
 import PlanCalendar from "@/components/PlanCalendar";
 import QuickAddPlan from "@/components/QuickAddPlan";
@@ -37,7 +38,7 @@ const PREV_WEEK = "drop:prev-week";
 const NEXT_WEEK = "drop:next-week";
 
 /** 식단 메뉴 카드 모양 (드래그 기능 없음 — 끄는 동안 따라다니는 카드에도 쓴다) */
-function PlanChipView({ plan, meal, lifted = false }: { plan: MealPlan; meal?: Meal; lifted?: boolean }) {
+function PlanChipView({ plan, meal, cook, lifted = false }: { plan: MealPlan; meal?: Meal; cook?: HouseholdMember; lifted?: boolean }) {
   return (
     <div
       className={`flex w-full gap-2 overflow-hidden rounded-lg border bg-surface p-1.5 text-left text-xs md:block md:p-0 ${meal ? "border-fat" : "border-line"} ${
@@ -52,6 +53,7 @@ function PlanChipView({ plan, meal, lifted = false }: { plan: MealPlan; meal?: M
           {meal && <span title="만들어 먹었어요">✅</span>}
         </div>
         {meal?.rating ? <StarRating value={meal.rating} size="sm" showNumber={meal.ratings.length > 1} /> : null}
+        <CookBadge member={cook} />
       </div>
     </div>
   );
@@ -73,7 +75,7 @@ function MealThumb({ meal }: { meal: Meal }) {
 }
 
 /** 끌어서 다른 날짜(또는 지난주/다음 주 버튼)에 놓을 수 있는 식단 메뉴. 짧게 누르면 상세 보기 */
-function DraggablePlan({ plan, meal, onOpen }: { plan: MealPlan; meal?: Meal; onOpen: () => void }) {
+function DraggablePlan({ plan, meal, cook, onOpen }: { plan: MealPlan; meal?: Meal; cook?: HouseholdMember; onOpen: () => void }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: plan.id });
   return (
     <button
@@ -85,7 +87,7 @@ function DraggablePlan({ plan, meal, onOpen }: { plan: MealPlan; meal?: Meal; on
       style={{ WebkitTouchCallout: "none" }}
       className={`block w-full select-none rounded-lg text-left hover:ring-1 hover:ring-accent ${isDragging ? "opacity-30" : ""}`}
     >
-      <PlanChipView plan={plan} meal={meal} />
+      <PlanChipView plan={plan} meal={meal} cook={cook} />
     </button>
   );
 }
@@ -123,6 +125,34 @@ export default function WeekPlanner() {
         setMe(d.household.me);
       });
   }, []);
+
+  const memberById = new Map(members.map((m) => [m.userId, m]));
+  /** 식단에 보일 요리사: 만들어 먹었으면 실제 요리한 사람, 아니면 요리하기로 한 사람 */
+  const cookOf = (plan: MealPlan, meal?: Meal) => memberById.get((meal?.cookId ?? plan.cookId) || "");
+
+  /** 식단의 요리사 바꾸기 (미정 = null) */
+  async function setPlanCook(planId: string, cookId: string | null) {
+    const res = await fetch(`/api/plans/${planId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cookId }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "요리사를 바꾸지 못했어요.");
+    setData((d) => d && { ...d, plans: d.plans.map((p) => (p.id === planId ? { ...p, cookId } : p)) });
+    setOpenPlan((p) => (p && p.id === planId ? { ...p, cookId } : p));
+  }
+
+  /** 기록(실제로 만든 요리)의 요리사 바꾸기 */
+  async function setMealCook(mealId: string, cookId: string | null) {
+    const res = await fetch(`/api/meals/${mealId}/cook`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ cookId }),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "요리사를 바꾸지 못했어요.");
+    setData((d) => d && { ...d, meals: d.meals.map((m) => (m.id === mealId ? { ...m, cookId } : m)) });
+    setOpenMeal((m) => (m && m.id === mealId ? { ...m, cookId } : m));
+  }
 
   /** 내 별점을 바꾸면 캘린더·상세 화면에 바로 반영 */
   function applyMyRating(mealId: string, rating: number | null) {
@@ -220,7 +250,7 @@ export default function WeekPlanner() {
   function cookedIt(plan: MealPlan) {
     if (plan.recipe) sessionStorage.setItem("zipbab:pendingRecipe", JSON.stringify(plan.recipe));
     else sessionStorage.removeItem("zipbab:pendingRecipe");
-    sessionStorage.setItem("zipbab:pendingPlan", JSON.stringify({ planId: plan.id, date: plan.date, title: plan.title }));
+    sessionStorage.setItem("zipbab:pendingPlan", JSON.stringify({ planId: plan.id, date: plan.date, title: plan.title, cookId: plan.cookId }));
     router.push("/journal?new=1");
   }
 
@@ -324,6 +354,7 @@ export default function WeekPlanner() {
                     key={plan.id}
                     plan={plan}
                     meal={plan.mealId ? mealById.get(plan.mealId) : undefined}
+                    cook={cookOf(plan, plan.mealId ? mealById.get(plan.mealId) : undefined)}
                     onOpen={() => setOpenPlan(plan)}
                   />
                 ))}
@@ -338,6 +369,7 @@ export default function WeekPlanner() {
                     <div className="min-w-0 flex-1 md:p-1.5">
                       <p className="truncate">📸 {meal.title}</p>
                       <StarRating value={meal.rating} size="sm" showNumber={meal.ratings.length > 1} />
+                      <CookBadge member={memberById.get(meal.cookId ?? "")} />
                     </div>
                   </button>
                 ))}
@@ -371,6 +403,8 @@ export default function WeekPlanner() {
             members={members}
             me={me}
             onRated={applyMyRating}
+            onPlanCook={(id) => setPlanCook(openPlan.id, id)}
+            onMealCook={setMealCook}
             onChanged={() => {
               setOpenPlan(null);
               setReload((n) => n + 1);
@@ -400,6 +434,9 @@ export default function WeekPlanner() {
                   </div>
                 ) : null}
                 {openMeal.memo && <p className="mt-2 whitespace-pre-wrap text-sm">{openMeal.memo}</p>}
+                {members.length > 1 && (
+                  <CookSection label="요리한 사람" members={members} value={openMeal.cookId} allowNone={false} onChange={(id) => setMealCook(openMeal.id, id)} />
+                )}
                 <div className="mt-3">
                   <MealRatings meal={openMeal} members={members} me={me} onChanged={(r) => applyMyRating(openMeal.id, r)} />
                 </div>
@@ -415,7 +452,14 @@ export default function WeekPlanner() {
 
       {/* 끄는 동안 손가락·마우스를 따라다니는 카드 */}
       <DragOverlay>
-        {dragging && <PlanChipView plan={dragging} meal={dragging.mealId ? mealById.get(dragging.mealId) : undefined} lifted />}
+        {dragging && (
+          <PlanChipView
+            plan={dragging}
+            meal={dragging.mealId ? mealById.get(dragging.mealId) : undefined}
+            cook={cookOf(dragging, dragging.mealId ? mealById.get(dragging.mealId) : undefined)}
+            lifted
+          />
+        )}
       </DragOverlay>
     </DndContext>
   );
@@ -429,6 +473,8 @@ function PlanDetail({
   onClose,
   onCooked,
   onRated,
+  onPlanCook,
+  onMealCook,
   onChanged,
 }: {
   plan: MealPlan;
@@ -438,6 +484,8 @@ function PlanDetail({
   onClose: () => void;
   onCooked: () => void;
   onRated: (mealId: string, rating: number | null) => void;
+  onPlanCook: (cookId: string | null) => Promise<void>;
+  onMealCook: (mealId: string, cookId: string | null) => Promise<void>;
   onChanged: () => void;
 }) {
   const [moving, setMoving] = useState(false);
@@ -471,6 +519,12 @@ function PlanDetail({
           {meal?.rating ? <StarRating value={meal.rating} showNumber count={meal.ratings.length} /> : null}
           {meal && <p className="text-sm text-fat">✅ {shortLabel(meal.date)}에 만들어 먹었어요</p>}
           {meal?.memo && <p className="whitespace-pre-wrap text-sm">{meal.memo}</p>}
+          {members.length > 0 &&
+            (meal ? (
+              <CookSection label="요리한 사람" members={members} value={meal.cookId} allowNone={false} onChange={(id) => onMealCook(meal.id, id)} />
+            ) : (
+              <CookSection label="누가 요리할까요?" members={members} value={plan.cookId} onChange={onPlanCook} />
+            ))}
           {meal && (
             <div className="pt-2">
               <MealRatings meal={meal} members={members} me={me} onChanged={(r) => onRated(meal.id, r)} />
@@ -554,3 +608,4 @@ function PlanDetail({
     </div>
   );
 }
+

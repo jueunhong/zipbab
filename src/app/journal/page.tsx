@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PhotoPicker, { usePhoto } from "@/components/PhotoPicker";
 import RecipeCard from "@/components/RecipeCard";
+import CookPicker, { CookBadge, CookSection } from "@/components/CookPicker";
 import MealRatings from "@/components/MealRatings";
 import StarRating from "@/components/StarRating";
 import { withMyRating } from "@/lib/ratings";
@@ -16,7 +17,9 @@ export default function Journal() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [pendingRecipe, setPendingRecipe] = useState<Recipe | null>(null);
   // 식단에서 "만들었어요"로 온 경우: 그 식단 칸과 날짜
-  const [pendingPlan, setPendingPlan] = useState<{ planId: string; date: string; title?: string } | null>(null);
+  const [pendingPlan, setPendingPlan] = useState<{ planId: string; date: string; title?: string; cookId?: string | null } | null>(null);
+  // 기록할 때 고른 요리사 (undefined = 아직 안 고름 → 식단의 요리사, 없으면 나)
+  const [cookChoice, setCookChoice] = useState<string | null | undefined>(undefined);
   const [showForm, setShowForm] = useState(false);
   const photo = usePhoto();
   const [rating, setRating] = useState<number | null>(null);
@@ -25,6 +28,7 @@ export default function Journal() {
   // 같은 집 멤버 — 여럿이 함께 쓸 때 누가 올린 기록인지 보여준다
   const [members, setMembers] = useState<HouseholdMember[]>([]);
   const [me, setMe] = useState<string | null>(null);
+  const formCook = cookChoice !== undefined ? cookChoice : (pendingPlan?.cookId ?? me);
 
   function changeCols(next: 2 | 3) {
     setCols(next);
@@ -99,6 +103,7 @@ export default function Journal() {
     if (pendingRecipe) form.set("recipe", JSON.stringify(pendingRecipe));
     if (pendingPlan) form.set("planId", pendingPlan.planId);
     if (rating) form.set("rating", String(rating));
+    if (formCook) form.set("cookId", formCook);
     const res = await fetch("/api/meals", { method: "POST", body: form });
     const data = await res.json().catch(() => ({ error: "업로드에 실패했어요." }));
     setSaving(false);
@@ -107,6 +112,7 @@ export default function Journal() {
     clearPending();
     pickPhoto(null);
     setRating(null);
+    setCookChoice(undefined);
     setShowForm(false);
     // 식단에서 왔으면 사진이 붙은 식단 화면으로 돌아간다
     if (pendingPlan) return router.push(`/plan?week=${form.get("date")}`);
@@ -148,6 +154,12 @@ export default function Journal() {
             <input name="title" className="input" placeholder="요리 이름" defaultValue={pendingRecipe?.title ?? pendingPlan?.title ?? ""} />
             <input name="date" type="date" className="input" defaultValue={pendingPlan?.date ?? today()} />
           </div>
+          {members.length > 1 && (
+            <div className="rounded-lg border border-line px-3 py-2.5">
+              <p className="mb-1.5 text-xs text-muted">👩‍🍳 누가 요리했나요?</p>
+              <CookPicker members={members} value={formCook} onChange={setCookChoice} allowNone={false} />
+            </div>
+          )}
           <div className="rounded-lg border border-line px-3 py-2.5">
             <p className="mb-1 text-xs text-muted">오늘 요리는 몇 점인가요?</p>
             <StarRating value={rating} onChange={setRating} size="lg" />
@@ -156,7 +168,7 @@ export default function Journal() {
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
             <button className="btn flex-1" disabled={saving}>{saving ? "저장 중…" : "저장"}</button>
-            <button type="button" className="rounded-lg border border-line px-4 py-2 text-sm" onClick={() => { pickPhoto(null); setRating(null); clearPending(); setError(""); setShowForm(false); }}>
+            <button type="button" className="rounded-lg border border-line px-4 py-2 text-sm" onClick={() => { pickPhoto(null); setRating(null); setCookChoice(undefined); clearPending(); setError(""); setShowForm(false); }}>
               취소
             </button>
           </div>
@@ -186,6 +198,7 @@ export default function Journal() {
                 <div className="p-2">
                   <p className="truncate text-sm font-medium">{meal.title}</p>
                   <StarRating value={meal.rating} size="sm" showNumber={meal.ratings.length > 1} />
+                  {members.length > 1 && <CookBadge member={members.find((m) => m.userId === meal.cookId)} />}
                   <p className="text-xs text-muted">{meal.date}</p>
                 </div>
               </button>
@@ -206,10 +219,29 @@ export default function Journal() {
               </div>
               {members.length > 1 && (
                 <p className="mt-0.5 text-xs text-muted">
-                  👤 {members.find((m) => m.userId === selected.userId)?.name ?? "예전 멤버"}님의 기록
+                  📸 {members.find((m) => m.userId === selected.userId)?.name ?? "예전 멤버"}님의 기록
                 </p>
               )}
               {selected.memo && <p className="mt-2 whitespace-pre-wrap text-sm">{selected.memo}</p>}
+              {members.length > 1 && (
+                <CookSection
+                  label="요리한 사람"
+                  members={members}
+                  value={selected.cookId}
+                  allowNone={false}
+                  onChange={async (cookId) => {
+                    const res = await fetch(`/api/meals/${selected.id}/cook`, {
+                      method: "PUT",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ cookId }),
+                    });
+                    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? "요리사를 바꾸지 못했어요.");
+                    const updated = { ...selected, cookId };
+                    setSelected(updated);
+                    setMeals((list) => list.map((m) => (m.id === updated.id ? updated : m)));
+                  }}
+                />
+              )}
               <div className="mt-3">
                 <MealRatings
                   meal={selected}

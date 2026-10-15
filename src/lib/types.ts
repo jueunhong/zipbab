@@ -106,6 +106,7 @@ export type PlanInput = z.infer<typeof PlanInputSchema>;
 export const PlanUpdateSchema = z.object({
   date: DateString.optional(),
   slot: z.enum(MEAL_SLOTS).optional(),
+  cookId: z.uuid().nullable().optional(), // 요리사 (null = 미정)
 });
 
 export type MealPlan = {
@@ -116,6 +117,7 @@ export type MealPlan = {
   recipe?: Recipe;
   myRecipeId: string | null;
   mealId: string | null;
+  cookId: string | null; // 요리할 사람
   createdAt: string;
 };
 
@@ -137,6 +139,7 @@ export type Meal = {
   rating: number | null; // 멤버 별점 평균 (1~6, 소수 첫째 자리)
   ratings: { userId: string; rating: number }[]; // 멤버별 별점
   myRating: number | null; // 내가 매긴 별점
+  cookId: string | null; // 요리한 사람
   createdAt: string;
 };
 

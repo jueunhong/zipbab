@@ -30,6 +30,7 @@ type MealRow = {
   photo_path: string;
   recipe: Recipe | null;
   meal_ratings?: { user_id: string; rating: number }[]; // 010 SQL: 멤버별 별점
+  cook_id?: string | null; // 011 SQL
   created_at: string;
 };
 
@@ -70,6 +71,7 @@ export async function listMeals(range?: { from: string; to: string }): Promise<M
       rating: average,
       ratings,
       myRating: ratings.find((x) => x.userId === me?.id)?.rating ?? null,
+      cookId: r.cook_id ?? null,
       createdAt: r.created_at,
     };
   });
@@ -83,6 +85,7 @@ export async function addMeal(meal: {
   photoPath: string;
   recipe?: Recipe;
   rating?: number | null;
+  cookId?: string | null;
 }): Promise<string> {
   const row = check<{ id: string }>(
     await (await supabase())
@@ -93,6 +96,8 @@ export async function addMeal(meal: {
         date: meal.date,
         photo_path: meal.photoPath,
         recipe: meal.recipe ?? null,
+        // 011 SQL 전에도 저장되도록 요리사를 골랐을 때만 보낸다
+        ...(meal.cookId ? { cook_id: meal.cookId } : {}),
       })
       .select("id")
       .single(),
@@ -100,6 +105,13 @@ export async function addMeal(meal: {
   // 올린 사람의 별점은 멤버별 별점 테이블에 저장한다
   if (meal.rating) await setMealRating(row.id, meal.rating);
   return row.id;
+}
+
+/** 기록의 요리사 바꾸기 (같은 집 멤버만 — DB 트리거가 확인) */
+export async function setMealCook(mealId: string, cookId: string | null): Promise<void> {
+  const { data, error } = await (await supabase()).from("meals").update({ cook_id: cookId }).eq("id", mealId).select("id");
+  if (error) throw new Error(error.message.includes("cook_not_in_household") ? "같은 집 멤버만 요리사로 지정할 수 있어요." : `Supabase 오류: ${error.message}`);
+  if (!data?.length) throw new Error("기록을 찾지 못했어요.");
 }
 
 /** 내 별점 남기기·바꾸기 (rating 이 null 이면 내 별점을 지운다) */
@@ -296,6 +308,7 @@ type MealPlanRow = {
   recipe: Recipe | null;
   my_recipe_id: string | null;
   meal_id: string | null;
+  cook_id?: string | null; // 011 SQL
   created_at: string;
 };
 
@@ -310,6 +323,7 @@ function toMealPlan(r: MealPlanRow): MealPlan {
     recipe: r.recipe ?? undefined,
     myRecipeId: r.my_recipe_id ?? null,
     mealId: r.meal_id,
+    cookId: r.cook_id ?? null,
     createdAt: r.created_at,
   };
 }
@@ -346,12 +360,18 @@ export async function addPlan(plan: PlanInput): Promise<MealPlan> {
   return toMealPlan(row);
 }
 
-export async function updatePlan(id: string, patch: { date?: string; slot?: MealSlot; mealId?: string | null }): Promise<void> {
+export async function updatePlan(
+  id: string,
+  patch: { date?: string; slot?: MealSlot; mealId?: string | null; cookId?: string | null },
+): Promise<void> {
   const update: Record<string, unknown> = {};
+  if (patch.cookId !== undefined) update.cook_id = patch.cookId;
   if (patch.date) update.plan_date = patch.date;
   if (patch.slot) update.slot = patch.slot;
   if (patch.mealId !== undefined) update.meal_id = patch.mealId;
-  check(await (await supabase()).from("meal_plans").update(update).eq("id", id));
+  const { data, error } = await (await supabase()).from("meal_plans").update(update).eq("id", id).select("id");
+  if (error) throw new Error(error.message.includes("cook_not_in_household") ? "같은 집 멤버만 요리사로 지정할 수 있어요." : `Supabase 오류: ${error.message}`);
+  if (!data?.length) throw new Error("식단을 찾지 못했어요.");
 }
 
 export async function deletePlan(id: string): Promise<void> {

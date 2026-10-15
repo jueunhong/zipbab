@@ -19,6 +19,9 @@ export const POST = withErrors(async (request: Request) => {
   const ratingRaw = Number(form.get("rating"));
   const rating = Number.isInteger(ratingRaw) && ratingRaw >= 1 && ratingRaw <= 6 ? ratingRaw : null;
 
+  const cookRaw = form.get("cookId");
+  const cookId = typeof cookRaw === "string" && /^[0-9a-f-]{36}$/.test(cookRaw) ? cookRaw : null;
+
   const mealId = await addMeal({
     title: String(form.get("title") || recipe?.title || "오늘의 집밥"),
     memo: String(form.get("memo") || ""),
@@ -26,6 +29,7 @@ export const POST = withErrors(async (request: Request) => {
     photoPath: await savePhoto(photo as File, thumbnailFrom(form)),
     recipe,
     rating,
+    cookId,
   });
 
   // 식단에서 "만들었어요"로 기록한 경우, 그 식단 칸에 이 사진을 연결한다
