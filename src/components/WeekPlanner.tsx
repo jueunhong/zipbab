@@ -52,13 +52,17 @@ function PlanChipView({ plan, meal, cook, lifted = false }: { plan: MealPlan; me
           <span className="line-clamp-2 flex-1">{plan.title}</span>
           {meal && <span title="만들어 먹었어요">✅</span>}
         </div>
-        {/* 제목 아래: 요리사 한 줄, 그 아래 별점 한 줄 */}
-        <CookBadge member={cook} block />
-        {meal?.rating ? (
-          <div>
-            <StarRating value={meal.rating} size="sm" showNumber={meal.ratings.length > 1} />
+        {/* 제목 아래: 요리사 한 줄, 그 아래 별점 한 줄 (제목과는 조금 띄운다) */}
+        {(cook || meal?.rating) && (
+          <div className="mt-2 space-y-1">
+            <CookBadge member={cook} block />
+            {meal?.rating ? (
+              <div>
+                <StarRating value={meal.rating} size="sm" showNumber={meal.ratings.length > 1} />
+              </div>
+            ) : null}
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );
@@ -373,9 +377,11 @@ export default function WeekPlanner() {
                     <MealThumb meal={meal} />
                     <div className="min-w-0 flex-1 md:p-1.5">
                       <p className="truncate">📸 {meal.title}</p>
-                      <CookBadge member={memberById.get(meal.cookId ?? "")} block />
-                      <div>
-                        <StarRating value={meal.rating} size="sm" showNumber={meal.ratings.length > 1} />
+                      <div className="mt-2 space-y-1">
+                        <CookBadge member={memberById.get(meal.cookId ?? "")} block />
+                        <div>
+                          <StarRating value={meal.rating} size="sm" showNumber={meal.ratings.length > 1} />
+                        </div>
                       </div>
                     </div>
                   </button>
