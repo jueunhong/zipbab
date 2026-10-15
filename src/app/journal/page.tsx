@@ -7,7 +7,7 @@ import RecipeCard from "@/components/RecipeCard";
 import StarRating from "@/components/StarRating";
 import { today } from "@/lib/dates";
 import { compressImage, makeThumbnail } from "@/lib/image";
-import type { Meal, Recipe } from "@/lib/types";
+import type { HouseholdMember, Meal, Recipe } from "@/lib/types";
 
 export default function Journal() {
   const router = useRouter();
@@ -20,6 +20,8 @@ export default function Journal() {
   const [rating, setRating] = useState<number | null>(null);
   // 사진 목록 보기: 2열(제목·별점 함께) / 3열(사진 위주). 고른 보기는 이 기기에 기억한다
   const [cols, setCols] = useState<2 | 3>(2);
+  // 같은 집 멤버 — 여럿이 함께 쓸 때 누가 올린 기록인지 보여준다
+  const [members, setMembers] = useState<HouseholdMember[]>([]);
 
   function changeCols(next: 2 | 3) {
     setCols(next);
@@ -51,6 +53,9 @@ export default function Journal() {
       .then(({ ok, data }) => {
         if (ok) setMeals(data.meals);
         else setLoadError(data.error);
+        fetch("/api/household")
+          .then((res) => (res.ok ? res.json() : null))
+          .then((d) => d && setMembers(d.household.members));
         try {
           if (localStorage.getItem("zipbab:journalCols") === "3") setCols(3);
         } catch {
@@ -192,8 +197,13 @@ export default function Journal() {
                 <h2 className="text-lg font-bold">{selected.title}</h2>
                 <span className="text-sm text-muted">{selected.date}</span>
               </div>
-              <div className="mt-1">
+              <div className="mt-1 flex flex-wrap items-center gap-2">
                 <StarRating value={selected.rating} />
+                {members.length > 1 && (
+                  <span className="text-xs text-muted">
+                    👤 {members.find((m) => m.userId === selected.userId)?.name ?? "예전 멤버"}님의 기록
+                  </span>
+                )}
               </div>
               {selected.memo && <p className="mt-2 whitespace-pre-wrap text-sm">{selected.memo}</p>}
             </div>

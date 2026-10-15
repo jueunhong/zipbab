@@ -1,8 +1,9 @@
 import path from "path";
 import { todayIn } from "./dates";
 import { currentUser, PHOTO_BUCKET, supabase } from "./supabase";
-import type { Meal, MealPlan, MealSlot, PlanInput, MyRecipe, MyRecipeInput, Nutrition, PantryCategory, PantryItem, Recipe, SavedRecipe } from "./types";
+import type { Household, InviteInfo, Meal, MealPlan, MealSlot, PlanInput, MyRecipe, MyRecipeInput, Nutrition, PantryCategory, PantryItem, Recipe, SavedRecipe } from "./types";
 
+// 008 SQL 부터 데이터는 "집(household)" 단위로 공유된다. insert 때 household_id 도 DB 기본값으로 자동으로 채워진다.
 // 저장소: Supabase (Postgres 테이블 pantry_items, meals, recipe_usage + Storage 버킷 photos)
 // 스키마는 supabase/*.sql 참고. DB 컬럼은 snake_case, 앱 타입은 camelCase 라서 여기서 변환한다.
 // 모든 요청은 로그인한 사용자의 세션으로 나가고, RLS 정책이 그 사용자의 데이터만 보이게 한다.
@@ -22,6 +23,7 @@ export const thumbPathOf = (path: string) => `${path}.thumb.jpg`;
 
 type MealRow = {
   id: string;
+  user_id: string;
   title: string;
   memo: string;
   date: string;
@@ -53,6 +55,7 @@ export async function listMeals(range?: { from: string; to: string }): Promise<M
 
   return rows.map((r) => ({
     id: r.id,
+    userId: r.user_id,
     title: r.title,
     memo: r.memo,
     date: r.date,
@@ -150,7 +153,7 @@ export async function saveRecipe(recipe: Recipe): Promise<SavedRecipe> {
   const row = check<SavedRecipeRow>(
     await (await supabase())
       .from("saved_recipes")
-      .upsert({ title: recipe.title, recipe }, { onConflict: "user_id,title" })
+      .upsert({ title: recipe.title, recipe }, { onConflict: "household_id,title" })
       .select()
       .single(),
   );
@@ -329,4 +332,89 @@ export async function updatePlan(id: string, patch: { date?: string; slot?: Meal
 
 export async function deletePlan(id: string): Promise<void> {
   check(await (await supabase()).from("meal_plans").delete().eq("id", id));
+}
+
+// ── 우리집 (함께 쓰기) ────────────────────────────────────────────────
+
+/** 구글 이름에 섞여 오는 보이지 않는 문자(소프트 하이픈, 제로폭 공백 등)를 지운다 */
+function cleanName(name: string | null | undefined): string {
+  return (name ?? "").replace(/[\u00AD\u200B-\u200F\u2060\uFEFF]/g, "").trim();
+}
+
+/** 지금 내가 속한 집, 멤버, 아직 유효한 초대 링크 */
+export async function getHousehold(): Promise<Household> {
+  const client = await supabase();
+  const user = await currentUser(client);
+  if (!user) throw new Error("로그인이 필요해요.");
+  const [{ data: h, error: e1 }, { data: members, error: e2 }, { data: invites, error: e3 }] = await Promise.all([
+    client.from("households").select("id, name").single(),
+    client.from("household_members").select("user_id, display_name, avatar_url, joined_at").order("joined_at"),
+    client.from("household_invites").select("code, expires_at").gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }),
+  ]);
+  const error = e1 ?? e2 ?? e3;
+  if (error) throw new Error(`Supabase 오류: ${error.message}`);
+  return {
+    id: h!.id,
+    name: h!.name,
+    me: user.id,
+    members: (members ?? []).map((m) => ({
+      userId: m.user_id,
+      name: cleanName(m.display_name) || "이름 없음",
+      avatarUrl: m.avatar_url ?? null,
+      joinedAt: m.joined_at,
+    })),
+    invites: (invites ?? []).map((i) => ({ code: i.code, expiresAt: i.expires_at })),
+  };
+}
+
+export async function renameHousehold(name: string): Promise<void> {
+  const client = await supabase();
+  const { data: h } = await client.from("households").select("id").single();
+  if (!h) throw new Error("우리집 정보를 찾지 못했어요.");
+  check(await client.from("households").update({ name }).eq("id", h.id));
+}
+
+/** 7일 동안 쓸 수 있는 초대 코드 (추측하기 어려운 12자리) */
+export async function createInvite(): Promise<{ code: string; expiresAt: string }> {
+  const client = await supabase();
+  const { data: h } = await client.from("households").select("id").single();
+  if (!h) throw new Error("우리집 정보를 찾지 못했어요.");
+  const alphabet = "abcdefghijkmnpqrstuvwxyz23456789"; // 헷갈리는 글자(l, o, 0, 1) 제외
+  const bytes = crypto.getRandomValues(new Uint8Array(12));
+  const code = Array.from(bytes, (b) => alphabet[b % alphabet.length]).join("");
+  const row = check<{ code: string; expires_at: string }>(
+    await client.from("household_invites").insert({ code, household_id: h.id }).select("code, expires_at").single(),
+  );
+  return { code: row.code, expiresAt: row.expires_at };
+}
+
+export async function getInviteInfo(code: string): Promise<InviteInfo | null> {
+  const { data, error } = await (await supabase()).rpc("invite_info", { invite_code: code });
+  if (error) throw new Error(`Supabase 오류: ${error.message}`);
+  const row = (data as Array<Record<string, unknown>> | null)?.[0];
+  if (!row) return null;
+  return {
+    householdName: String(row.household_name),
+    inviterName: cleanName(row.inviter_name as string | null) || "친구",
+    memberCount: Number(row.member_count),
+    expired: Boolean(row.expired),
+    alreadyMember: Boolean(row.already_member),
+    iAmAlone: Boolean(row.i_am_alone),
+  };
+}
+
+export async function joinHousehold(code: string): Promise<void> {
+  const { error } = await (await supabase()).rpc("join_household", { invite_code: code });
+  if (error) {
+    if (error.message.includes("invalid_invite")) throw new Error("초대 링크가 만료됐거나 잘못됐어요. 새 링크를 받아 주세요.");
+    throw new Error(`Supabase 오류: ${error.message}`);
+  }
+}
+
+export async function leaveHousehold(): Promise<void> {
+  const { error } = await (await supabase()).rpc("leave_household");
+  if (error) {
+    if (error.message.includes("alone")) throw new Error("혼자 쓰는 집에서는 나갈 수 없어요.");
+    throw new Error(`Supabase 오류: ${error.message}`);
+  }
 }

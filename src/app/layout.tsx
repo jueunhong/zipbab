@@ -42,15 +42,16 @@ async function NavLinks() {
       <Link href="/pantry" className="hover:text-accent">재료</Link>
       <Link href="/saved" className="hover:text-accent">레시피북</Link>
       <Link href="/journal" className="hover:text-accent">기록</Link>
-      <form action="/auth/logout" method="post">
-        <button className="flex items-center gap-1.5 text-muted hover:text-accent" title={`${user.email ?? ""} 로그아웃`}>
-          {user.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={user.avatarUrl} alt="" className="h-6 w-6 rounded-full" referrerPolicy="no-referrer" />
-          ) : null}
-          <span className="hidden sm:inline">로그아웃</span>
-        </button>
-      </form>
+      {/* 프로필 사진 → 우리집(멤버·초대·로그아웃) */}
+      <Link href="/household" className="flex items-center gap-1.5 text-muted hover:text-accent" title={`${user.email ?? ""} · 우리집`}>
+        {user.avatarUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={user.avatarUrl} alt="우리집" className="h-6 w-6 rounded-full" referrerPolicy="no-referrer" />
+        ) : (
+          <span aria-label="우리집">🏠</span>
+        )}
+        <span className="hidden sm:inline">우리집</span>
+      </Link>
     </div>
   );
 }

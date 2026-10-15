@@ -15,7 +15,15 @@ export async function GET(request: Request, { params }: Ctx) {
   }
   const photoPath = path.join("/");
   const wantThumb = new URL(request.url).searchParams.get("size") === "thumb";
-  const storage = (await supabase()).storage.from(PHOTO_BUCKET);
+  const client = await supabase();
+
+  // 사진 주인(경로의 첫 폴더)이 지금 같은 집 멤버인지 직접 확인한다.
+  // 저장소 정책도 같은 걸 검사하지만, Supabase 저장소 캐시가 예전에 받아 간 사람에게는 권한 확인 없이
+  // 잠시 다시 내려주는 경우가 있어서 (집에서 나간 사람 등) 여기서 한 번 더 막는다.
+  const { data: owner } = await client.from("household_members").select("user_id").eq("user_id", path[0]).maybeSingle();
+  if (!owner) return new Response("Not found", { status: 404 });
+
+  const storage = client.storage.from(PHOTO_BUCKET);
 
   // 썸네일이 없는 예전 사진은 원본으로 대신 보낸다
   let { data } = wantThumb ? await storage.download(thumbPathOf(photoPath)) : { data: null };

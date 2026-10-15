@@ -127,6 +127,7 @@ export type SavedRecipe = {
 
 export type Meal = {
   id: string;
+  userId: string; // 올린 사람
   title: string;
   memo: string;
   date: string;
@@ -135,4 +136,28 @@ export type Meal = {
   recipe?: Recipe;
   rating: number | null; // 1~6
   createdAt: string;
+};
+
+export type HouseholdMember = {
+  userId: string;
+  name: string;
+  avatarUrl: string | null;
+  joinedAt: string;
+};
+
+export type Household = {
+  id: string;
+  name: string;
+  me: string; // 내 user id
+  members: HouseholdMember[];
+  invites: { code: string; expiresAt: string }[];
+};
+
+export type InviteInfo = {
+  householdName: string;
+  inviterName: string;
+  memberCount: number;
+  expired: boolean;
+  alreadyMember: boolean;
+  iAmAlone: boolean; // 지금 혼자 쓰는 집이면 내 데이터를 가져간다
 };
