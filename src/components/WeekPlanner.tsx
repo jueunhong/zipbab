@@ -15,6 +15,7 @@ import {
 } from "@dnd-kit/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import PlanCalendar from "@/components/PlanCalendar";
 import QuickAddPlan from "@/components/QuickAddPlan";
 import RecipeCard from "@/components/RecipeCard";
 import StarRating from "@/components/StarRating";
@@ -437,8 +438,7 @@ function PlanDetail({
             </button>
           )}
           {moving ? (
-            <div className="space-y-2">
-              <input type="date" className="input" value={date} onChange={(e) => setDate(e.target.value)} />
+            <div className="space-y-3">
               <div className="flex gap-1.5">
                 {MEAL_SLOTS.map((s) => (
                   <button
@@ -451,9 +451,19 @@ function PlanDetail({
                   </button>
                 ))}
               </div>
-              <button onClick={() => request("PATCH", { date, slot })} disabled={busy || !date} className="btn w-full">
-                {shortLabel(date)} {slot}으로 옮기기
-              </button>
+              <PlanCalendar value={date} onChange={setDate} slot={slot} movingPlanId={plan.id} />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => request("PATCH", { date, slot })}
+                  disabled={busy || !date || (date === plan.date && slot === plan.slot)}
+                  className="btn flex-1"
+                >
+                  {shortLabel(date)} {slot}으로 옮기기
+                </button>
+                <button type="button" onClick={() => setMoving(false)} className="rounded-lg border border-line px-4 text-sm">
+                  취소
+                </button>
+              </div>
             </div>
           ) : (
             <div className="flex gap-2">

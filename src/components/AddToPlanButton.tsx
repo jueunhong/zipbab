@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { addDays, shortLabel, today } from "@/lib/dates";
+import PlanCalendar from "@/components/PlanCalendar";
+import { shortLabel, today } from "@/lib/dates";
 import { MEAL_SLOTS, type MealSlot, type Recipe } from "@/lib/types";
 
 /** "📅 식단에 추가" — 누르면 날짜·끼니를 고르는 칸이 펼쳐진다 */
@@ -46,9 +47,6 @@ export default function AddToPlanButton({
     setOpen(false);
   }
 
-  const start = today();
-  const quickDates = Array.from({ length: 7 }, (_, i) => addDays(start, i));
-
   return (
     <div className={className}>
       <button
@@ -70,19 +68,6 @@ export default function AddToPlanButton({
 
       {open && (
         <div className="card mt-2 space-y-3 !p-4">
-          <div className="flex flex-wrap gap-1.5">
-            {quickDates.map((d, i) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDate(d)}
-                className={`rounded-full px-2.5 py-1 text-xs ${date === d ? "bg-accent text-white" : "border border-line"}`}
-              >
-                {i === 0 ? "오늘" : i === 1 ? "내일" : shortLabel(d)}
-              </button>
-            ))}
-            <input type="date" className="input !w-auto !py-1 text-xs" value={date} onChange={(e) => setDate(e.target.value)} />
-          </div>
           <div className="flex gap-1.5">
             {MEAL_SLOTS.map((s) => (
               <button
@@ -95,6 +80,7 @@ export default function AddToPlanButton({
               </button>
             ))}
           </div>
+          <PlanCalendar value={date} onChange={setDate} slot={slot} />
           {error && <p className="text-xs text-red-600">{error}</p>}
           <button type="button" onClick={save} disabled={saving || !date} className="btn w-full">
             {saving ? "저장 중…" : `${date ? shortLabel(date) : ""} ${slot}으로 저장`}

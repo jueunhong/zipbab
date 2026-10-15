@@ -18,6 +18,17 @@ export default function Journal() {
   const [showForm, setShowForm] = useState(false);
   const photo = usePhoto();
   const [rating, setRating] = useState<number | null>(null);
+  // 사진 목록 보기: 2열(제목·별점 함께) / 3열(사진 위주). 고른 보기는 이 기기에 기억한다
+  const [cols, setCols] = useState<2 | 3>(2);
+
+  function changeCols(next: 2 | 3) {
+    setCols(next);
+    try {
+      localStorage.setItem("zipbab:journalCols", String(next));
+    } catch {
+      // 저장이 막혀도 이번 화면에서는 바뀐 보기로 보인다
+    }
+  }
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<Meal | null>(null);
@@ -40,6 +51,11 @@ export default function Journal() {
       .then(({ ok, data }) => {
         if (ok) setMeals(data.meals);
         else setLoadError(data.error);
+        try {
+          if (localStorage.getItem("zipbab:journalCols") === "3") setCols(3);
+        } catch {
+          // 기본 2열
+        }
         // 추천 페이지에서 "만들었어요"로 넘어온 경우 레시피와 함께 기록 폼을 연다
         const stored = sessionStorage.getItem("zipbab:pendingRecipe");
         if (stored) setPendingRecipe(JSON.parse(stored));
@@ -91,6 +107,21 @@ export default function Journal() {
         <div>
           <h1 className="text-2xl font-bold">나의 집밥 기록</h1>
           <p className="mt-1 text-sm text-muted">지금까지 {meals.length}끼를 직접 해먹었어요.</p>
+          {meals.length > 0 && (
+            <div className="mt-2 inline-flex rounded-lg border border-line p-0.5 text-xs" role="group" aria-label="사진 보기">
+              {([2, 3] as const).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => changeCols(n)}
+                  aria-pressed={cols === n}
+                  className={`rounded-md px-2.5 py-1 ${cols === n ? "bg-accent text-white" : "text-muted"}`}
+                >
+                  {n}열
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         {!showForm && (
           <button className="btn" onClick={() => setShowForm(true)}>+ 기록하기</button>
@@ -125,18 +156,29 @@ export default function Journal() {
       {loadError ? null : meals.length === 0 && !showForm ? (
         <div className="card text-center text-sm text-muted">아직 기록이 없어요. 첫 집밥을 기록해 보세요!</div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-          {meals.map((meal) => (
-            <button key={meal.id} onClick={() => setSelected(meal)} className="group overflow-hidden rounded-xl border border-line bg-surface text-left">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={meal.thumbUrl} alt={meal.title} loading="lazy" decoding="async" className="aspect-square w-full bg-line object-cover transition group-hover:scale-105" />
-              <div className="p-2">
-                <p className="truncate text-sm font-medium">{meal.title}</p>
-                <StarRating value={meal.rating} size="sm" />
-                <p className="text-xs text-muted">{meal.date}</p>
-              </div>
-            </button>
-          ))}
+        <div className={cols === 3 ? "grid grid-cols-3 gap-1 sm:grid-cols-4" : "grid grid-cols-2 gap-3 sm:grid-cols-3"}>
+          {meals.map((meal) =>
+            cols === 3 ? (
+              // 3열: 사진 위주. 별점만 사진 위에 작게
+              <button key={meal.id} onClick={() => setSelected(meal)} className="group relative overflow-hidden rounded-md bg-line" aria-label={`${meal.title} ${meal.date}`}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={meal.thumbUrl} alt={meal.title} loading="lazy" decoding="async" className="aspect-square w-full object-cover transition group-hover:scale-105" />
+                {meal.rating ? (
+                  <span className="absolute bottom-1 left-1 rounded bg-black/55 px-1 text-[10px] leading-4 text-carbs">★{meal.rating}</span>
+                ) : null}
+              </button>
+            ) : (
+              <button key={meal.id} onClick={() => setSelected(meal)} className="group overflow-hidden rounded-xl border border-line bg-surface text-left">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={meal.thumbUrl} alt={meal.title} loading="lazy" decoding="async" className="aspect-square w-full bg-line object-cover transition group-hover:scale-105" />
+                <div className="p-2">
+                  <p className="truncate text-sm font-medium">{meal.title}</p>
+                  <StarRating value={meal.rating} size="sm" />
+                  <p className="text-xs text-muted">{meal.date}</p>
+                </div>
+              </button>
+            ),
+          )}
         </div>
       )}
 

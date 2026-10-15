@@ -55,3 +55,26 @@ export function shortLabel(date: string): string {
   const d = parse(date);
   return `${d.getMonth() + 1}/${d.getDate()}(${weekdayLabel(date)})`;
 }
+
+/** 그 날짜가 속한 달의 1일 */
+export function monthStart(date: string): string {
+  return `${date.slice(0, 7)}-01`;
+}
+
+/** 달 단위로 이동 (month 는 "YYYY-MM-01") */
+export function addMonths(month: string, n: number): string {
+  const d = parse(month);
+  d.setMonth(d.getMonth() + n, 1);
+  return toDateString(d);
+}
+
+/** 그 달의 마지막 날 */
+export function monthEnd(month: string): string {
+  return addDays(addMonths(month, 1), -1);
+}
+
+/** "2026년 10월" */
+export function monthLabel(month: string): string {
+  const d = parse(month);
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
+}
