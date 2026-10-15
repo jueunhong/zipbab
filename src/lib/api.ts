@@ -36,7 +36,7 @@ export function thumbnailFrom(form: FormData): File | null {
 // 누구나 가입할 수 있으므로 한 사람이 API 요금을 과하게 쓰지 못하게 막는다 (레시피 추천 + 영양 계산 합산)
 const DAILY_AI_LIMIT = Number(process.env.RECIPE_DAILY_LIMIT) || 10;
 
-// 관리자(사이트 주인)는 횟수 제한 없음. ADMIN_EMAILS=a@x.com,b@y.com
+// 관리자(사이트 주인)와, 관리자와 같은 집에 사는 멤버는 횟수 제한 없음. ADMIN_EMAILS=a@x.com,b@y.com
 const ADMIN_EMAILS = new Set(
   (process.env.ADMIN_EMAILS ?? "")
     .split(",")
@@ -44,10 +44,15 @@ const ADMIN_EMAILS = new Set(
     .filter(Boolean),
 );
 
-async function isAdmin(): Promise<boolean> {
+async function isUnlimited(): Promise<boolean> {
   if (ADMIN_EMAILS.size === 0) return false;
-  const user = await currentUser(await supabase());
-  return Boolean(user?.email && ADMIN_EMAILS.has(user.email.toLowerCase()));
+  const client = await supabase();
+  const user = await currentUser(client);
+  if (user?.email && ADMIN_EMAILS.has(user.email.toLowerCase())) return true;
+  // 내 집 멤버 중에 관리자가 있으면 무제한 (009 SQL 함수. 아직 없으면 그냥 제한 적용)
+  const { data, error } = await client.rpc("household_has_email", { emails: [...ADMIN_EMAILS] });
+  if (error) console.error("[isUnlimited]", error.message);
+  return data === true;
 }
 
 /** Claude 를 부르기 전에 호출. 오늘 한도를 넘었거나 키가 없으면 돌려줄 응답을, 괜찮으면 null 을 준다 (그리고 사용 1회 기록) */
@@ -55,7 +60,7 @@ export async function consumeAiQuota(): Promise<Response | null> {
   if (!process.env.ANTHROPIC_API_KEY) {
     return Response.json({ error: "API 키가 설정되지 않았어요. .env.local에 ANTHROPIC_API_KEY를 넣고 서버를 다시 시작해 주세요." }, { status: 500 });
   }
-  if (!(await isAdmin()) && (await countRecipeUsageToday()) >= DAILY_AI_LIMIT) {
+  if (!(await isUnlimited()) && (await countRecipeUsageToday()) >= DAILY_AI_LIMIT) {
     return Response.json(
       { error: `오늘은 AI 기능(레시피 추천·영양 계산)을 ${DAILY_AI_LIMIT}번 모두 사용했어요. 내일 다시 이용해 주세요.` },
       { status: 429 },
