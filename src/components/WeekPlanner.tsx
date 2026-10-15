@@ -15,12 +15,14 @@ import {
 } from "@dnd-kit/core";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import MealRatings from "@/components/MealRatings";
 import PlanCalendar from "@/components/PlanCalendar";
 import QuickAddPlan from "@/components/QuickAddPlan";
 import RecipeCard from "@/components/RecipeCard";
 import StarRating from "@/components/StarRating";
 import { addDays, shortLabel, today, weekStart, weekdayLabel } from "@/lib/dates";
-import { MEAL_SLOTS, type Meal, type MealPlan, type MealSlot } from "@/lib/types";
+import { withMyRating } from "@/lib/ratings";
+import { MEAL_SLOTS, type HouseholdMember, type Meal, type MealPlan, type MealSlot } from "@/lib/types";
 
 const SLOT_ICON: Record<MealSlot, string> = { 아침: "🌅", 점심: "☀️", 저녁: "🌙" };
 
@@ -49,7 +51,7 @@ function PlanChipView({ plan, meal, lifted = false }: { plan: MealPlan; meal?: M
           <span className="line-clamp-2 flex-1">{plan.title}</span>
           {meal && <span title="만들어 먹었어요">✅</span>}
         </div>
-        {meal?.rating ? <StarRating value={meal.rating} size="sm" /> : null}
+        {meal?.rating ? <StarRating value={meal.rating} size="sm" showNumber={meal.ratings.length > 1} /> : null}
       </div>
     </div>
   );
@@ -108,6 +110,26 @@ export default function WeekPlanner() {
   const [openPlan, setOpenPlan] = useState<MealPlan | null>(null);
   const [openMeal, setOpenMeal] = useState<Meal | null>(null);
   const [addingDate, setAddingDate] = useState<string | null>(null);
+  // 같은 집 멤버 — 기록 상세에서 멤버별 별점에 이름을 붙이고, 내 별점을 구분한다
+  const [members, setMembers] = useState<HouseholdMember[]>([]);
+  const [me, setMe] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/household")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((d) => {
+        if (!d) return;
+        setMembers(d.household.members);
+        setMe(d.household.me);
+      });
+  }, []);
+
+  /** 내 별점을 바꾸면 캘린더·상세 화면에 바로 반영 */
+  function applyMyRating(mealId: string, rating: number | null) {
+    if (!me) return;
+    setData((d) => d && { ...d, meals: d.meals.map((m) => (m.id === mealId ? withMyRating(m, me, rating) : m)) });
+    setOpenMeal((m) => (m && m.id === mealId ? withMyRating(m, me, rating) : m));
+  }
   const [dragging, setDragging] = useState<MealPlan | null>(null);
   // 방금 옮긴 메뉴 — "되돌리기" 안내용
   const [moved, setMoved] = useState<{ plan: MealPlan; from: string; to: string } | null>(null);
@@ -315,7 +337,7 @@ export default function WeekPlanner() {
                     <MealThumb meal={meal} />
                     <div className="min-w-0 flex-1 md:p-1.5">
                       <p className="truncate">📸 {meal.title}</p>
-                      <StarRating value={meal.rating} size="sm" />
+                      <StarRating value={meal.rating} size="sm" showNumber={meal.ratings.length > 1} />
                     </div>
                   </button>
                 ))}
@@ -346,6 +368,9 @@ export default function WeekPlanner() {
             meal={openPlan.mealId ? mealById.get(openPlan.mealId) : undefined}
             onClose={() => setOpenPlan(null)}
             onCooked={() => cookedIt(openPlan)}
+            members={members}
+            me={me}
+            onRated={applyMyRating}
             onChanged={() => {
               setOpenPlan(null);
               setReload((n) => n + 1);
@@ -369,10 +394,15 @@ export default function WeekPlanner() {
                   <h2 className="text-lg">{openMeal.title}</h2>
                   <span className="text-sm text-muted">{shortLabel(openMeal.date)}</span>
                 </div>
-                <div className="mt-1">
-                  <StarRating value={openMeal.rating} />
-                </div>
+                {openMeal.rating ? (
+                  <div className="mt-1">
+                    <StarRating value={openMeal.rating} showNumber count={openMeal.ratings.length} />
+                  </div>
+                ) : null}
                 {openMeal.memo && <p className="mt-2 whitespace-pre-wrap text-sm">{openMeal.memo}</p>}
+                <div className="mt-3">
+                  <MealRatings meal={openMeal} members={members} me={me} onChanged={(r) => applyMyRating(openMeal.id, r)} />
+                </div>
               </div>
               {openMeal.recipe && <RecipeCard recipe={openMeal.recipe} />}
               <button className="w-full rounded-lg bg-surface py-2 text-sm" onClick={() => setOpenMeal(null)}>
@@ -394,14 +424,20 @@ export default function WeekPlanner() {
 function PlanDetail({
   plan,
   meal,
+  members,
+  me,
   onClose,
   onCooked,
+  onRated,
   onChanged,
 }: {
   plan: MealPlan;
   meal?: Meal;
+  members: HouseholdMember[];
+  me: string | null;
   onClose: () => void;
   onCooked: () => void;
+  onRated: (mealId: string, rating: number | null) => void;
   onChanged: () => void;
 }) {
   const [moving, setMoving] = useState(false);
@@ -431,13 +467,15 @@ function PlanDetail({
             {shortLabel(plan.date)} · {SLOT_ICON[plan.slot]} {plan.slot}
           </p>
           <h2 className="text-lg">{plan.title}</h2>
+          {/* 제목 바로 아래: 멤버 별점 평균 */}
+          {meal?.rating ? <StarRating value={meal.rating} showNumber count={meal.ratings.length} /> : null}
+          {meal && <p className="text-sm text-fat">✅ {shortLabel(meal.date)}에 만들어 먹었어요</p>}
+          {meal?.memo && <p className="whitespace-pre-wrap text-sm">{meal.memo}</p>}
           {meal && (
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm text-fat">✅ {shortLabel(meal.date)}에 만들어 먹었어요</p>
-              <StarRating value={meal.rating} />
+            <div className="pt-2">
+              <MealRatings meal={meal} members={members} me={me} onChanged={(r) => onRated(meal.id, r)} />
             </div>
           )}
-          {meal?.memo && <p className="whitespace-pre-wrap text-sm">{meal.memo}</p>}
         </div>
 
         {meal && (

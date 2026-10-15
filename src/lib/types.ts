@@ -134,7 +134,9 @@ export type Meal = {
   photoUrl: string;
   thumbUrl: string;
   recipe?: Recipe;
-  rating: number | null; // 1~6
+  rating: number | null; // 멤버 별점 평균 (1~6, 소수 첫째 자리)
+  ratings: { userId: string; rating: number }[]; // 멤버별 별점
+  myRating: number | null; // 내가 매긴 별점
   createdAt: string;
 };
 

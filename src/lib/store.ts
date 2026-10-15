@@ -29,7 +29,7 @@ type MealRow = {
   date: string;
   photo_path: string;
   recipe: Recipe | null;
-  rating?: number | null; // 007 SQL 전에는 컬럼이 없어서 undefined
+  meal_ratings?: { user_id: string; rating: number }[]; // 010 SQL: 멤버별 별점
   created_at: string;
 };
 
@@ -48,23 +48,31 @@ function check<T>({ data, error }: { data: T | null; error: { message: string } 
 
 /** range 를 주면 그 기간(from~to, 양 끝 포함)의 기록만 */
 export async function listMeals(range?: { from: string; to: string }): Promise<Meal[]> {
-  let query = (await supabase()).from("meals").select("*");
+  const client = await supabase();
+  let query = client.from("meals").select("*, meal_ratings(user_id, rating)");
   if (range) query = query.gte("date", range.from).lte("date", range.to);
-  const rows = check<MealRow[]>(await query.order("date", { ascending: false }).order("created_at", { ascending: false }));
+  const [res, me] = await Promise.all([query.order("date", { ascending: false }).order("created_at", { ascending: false }), currentUser(client)]);
+  const rows = check<MealRow[]>(res);
   if (rows.length === 0) return [];
 
-  return rows.map((r) => ({
-    id: r.id,
-    userId: r.user_id,
-    title: r.title,
-    memo: r.memo,
-    date: r.date,
-    photoUrl: photoUrl(r.photo_path),
-    thumbUrl: photoUrl(r.photo_path, "thumb"),
-    recipe: r.recipe ?? undefined,
-    rating: r.rating ?? null,
-    createdAt: r.created_at,
-  }));
+  return rows.map((r) => {
+    const ratings = (r.meal_ratings ?? []).map((x) => ({ userId: x.user_id, rating: x.rating }));
+    const average = ratings.length ? Math.round((ratings.reduce((sum, x) => sum + x.rating, 0) / ratings.length) * 10) / 10 : null;
+    return {
+      id: r.id,
+      userId: r.user_id,
+      title: r.title,
+      memo: r.memo,
+      date: r.date,
+      photoUrl: photoUrl(r.photo_path),
+      thumbUrl: photoUrl(r.photo_path, "thumb"),
+      recipe: r.recipe ?? undefined,
+      rating: average,
+      ratings,
+      myRating: ratings.find((x) => x.userId === me?.id)?.rating ?? null,
+      createdAt: r.created_at,
+    };
+  });
 }
 
 /** 기록을 저장하고 새 기록의 id 를 돌려준다 */
@@ -85,13 +93,29 @@ export async function addMeal(meal: {
         date: meal.date,
         photo_path: meal.photoPath,
         recipe: meal.recipe ?? null,
-        // 별점을 매겼을 때만 보낸다 (007 SQL 전에도 별점 없는 기록은 저장되도록)
-        ...(meal.rating ? { rating: meal.rating } : {}),
       })
       .select("id")
       .single(),
   );
+  // 올린 사람의 별점은 멤버별 별점 테이블에 저장한다
+  if (meal.rating) await setMealRating(row.id, meal.rating);
   return row.id;
+}
+
+/** 내 별점 남기기·바꾸기 (rating 이 null 이면 내 별점을 지운다) */
+export async function setMealRating(mealId: string, rating: number | null): Promise<void> {
+  const client = await supabase();
+  const user = await currentUser(client);
+  if (!user) throw new Error("로그인이 필요해요.");
+  if (rating === null) {
+    check(await client.from("meal_ratings").delete().eq("meal_id", mealId).eq("user_id", user.id));
+  } else {
+    check(
+      await client
+        .from("meal_ratings")
+        .upsert({ meal_id: mealId, user_id: user.id, rating, updated_at: new Date().toISOString() }, { onConflict: "meal_id,user_id" }),
+    );
+  }
 }
 
 /** 사진(과 썸네일)을 저장하고 원본 경로를 돌려준다 */

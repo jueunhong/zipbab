@@ -4,7 +4,9 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PhotoPicker, { usePhoto } from "@/components/PhotoPicker";
 import RecipeCard from "@/components/RecipeCard";
+import MealRatings from "@/components/MealRatings";
 import StarRating from "@/components/StarRating";
+import { withMyRating } from "@/lib/ratings";
 import { today } from "@/lib/dates";
 import { compressImage, makeThumbnail } from "@/lib/image";
 import type { HouseholdMember, Meal, Recipe } from "@/lib/types";
@@ -22,6 +24,7 @@ export default function Journal() {
   const [cols, setCols] = useState<2 | 3>(2);
   // 같은 집 멤버 — 여럿이 함께 쓸 때 누가 올린 기록인지 보여준다
   const [members, setMembers] = useState<HouseholdMember[]>([]);
+  const [me, setMe] = useState<string | null>(null);
 
   function changeCols(next: 2 | 3) {
     setCols(next);
@@ -55,7 +58,11 @@ export default function Journal() {
         else setLoadError(data.error);
         fetch("/api/household")
           .then((res) => (res.ok ? res.json() : null))
-          .then((d) => d && setMembers(d.household.members));
+          .then((d) => {
+            if (!d) return;
+            setMembers(d.household.members);
+            setMe(d.household.me);
+          });
         try {
           if (localStorage.getItem("zipbab:journalCols") === "3") setCols(3);
         } catch {
@@ -169,7 +176,7 @@ export default function Journal() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={meal.thumbUrl} alt={meal.title} loading="lazy" decoding="async" className="aspect-square w-full object-cover transition group-hover:scale-105" />
                 {meal.rating ? (
-                  <span className="absolute bottom-1 left-1 rounded bg-black/55 px-1 text-[10px] leading-4 text-carbs">★{meal.rating}</span>
+                  <span className="absolute bottom-1 left-1 rounded bg-black/55 px-1 text-[10px] leading-4 text-carbs">★{Number.isInteger(meal.rating) ? meal.rating : meal.rating.toFixed(1)}</span>
                 ) : null}
               </button>
             ) : (
@@ -178,7 +185,7 @@ export default function Journal() {
                 <img src={meal.thumbUrl} alt={meal.title} loading="lazy" decoding="async" className="aspect-square w-full bg-line object-cover transition group-hover:scale-105" />
                 <div className="p-2">
                   <p className="truncate text-sm font-medium">{meal.title}</p>
-                  <StarRating value={meal.rating} size="sm" />
+                  <StarRating value={meal.rating} size="sm" showNumber={meal.ratings.length > 1} />
                   <p className="text-xs text-muted">{meal.date}</p>
                 </div>
               </button>
@@ -197,15 +204,25 @@ export default function Journal() {
                 <h2 className="text-lg">{selected.title}</h2>
                 <span className="text-sm text-muted">{selected.date}</span>
               </div>
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <StarRating value={selected.rating} />
-                {members.length > 1 && (
-                  <span className="text-xs text-muted">
-                    👤 {members.find((m) => m.userId === selected.userId)?.name ?? "예전 멤버"}님의 기록
-                  </span>
-                )}
-              </div>
+              {members.length > 1 && (
+                <p className="mt-0.5 text-xs text-muted">
+                  👤 {members.find((m) => m.userId === selected.userId)?.name ?? "예전 멤버"}님의 기록
+                </p>
+              )}
               {selected.memo && <p className="mt-2 whitespace-pre-wrap text-sm">{selected.memo}</p>}
+              <div className="mt-3">
+                <MealRatings
+                  meal={selected}
+                  members={members}
+                  me={me}
+                  onChanged={(rating) => {
+                    if (!me) return;
+                    const updated = withMyRating(selected, me, rating);
+                    setSelected(updated);
+                    setMeals((list) => list.map((m) => (m.id === updated.id ? updated : m)));
+                  }}
+                />
+              </div>
             </div>
             {selected.recipe && <RecipeCard recipe={selected.recipe} />}
             <button className="w-full rounded-lg bg-surface py-2 text-sm" onClick={() => setSelected(null)}>닫기</button>
