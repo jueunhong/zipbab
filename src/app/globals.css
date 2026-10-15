@@ -26,9 +26,9 @@
   --color-carbs: var(--carbs);
   --color-protein: var(--protein);
   --color-fat: var(--fat);
-  /* 본문: 고운돋움 / 제목·메뉴·버튼: 주아 (layout.tsx 에서 불러옴) */
+  /* 글꼴은 고운돋움 하나 (layout.tsx 에서 불러옴). font-display 는 강조용 — 같은 글꼴을 굵게 쓴다 */
   --font-sans: var(--font-body), "Apple SD Gothic Neo", system-ui, sans-serif;
-  --font-display: var(--font-display-face), var(--font-body), "Apple SD Gothic Neo", system-ui, sans-serif;
+  --font-display: var(--font-sans);
 }
 
 body {
@@ -37,12 +37,12 @@ body {
   font-family: var(--font-sans);
 }
 
-/* 제목은 로고처럼 둥글고 도톰한 주아체로. 굵게 처리하면 뭉개져서 원래 굵기로 둔다 */
+/* 고운돋움은 굵기가 하나라 제목·버튼·메뉴는 굵게 표시해서 본문과 구분한다 */
 h1,
 h2,
-h3 {
-  font-family: var(--font-display);
-  font-weight: 400;
+h3,
+.font-display {
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
@@ -55,7 +55,7 @@ h3 {
 }
 
 .btn {
-  @apply rounded-xl bg-accent px-4 py-2 font-display text-[15px] text-white shadow-[0_2px_0_var(--accent-strong)] transition hover:bg-accent-strong active:translate-y-px active:shadow-none disabled:opacity-50 disabled:shadow-none;
+  @apply rounded-xl bg-accent px-4 py-2 font-display text-[15px] font-bold text-white shadow-[0_2px_0_var(--accent-strong)] transition hover:bg-accent-strong active:translate-y-px active:shadow-none disabled:opacity-50 disabled:shadow-none;
 }
 
 .card {

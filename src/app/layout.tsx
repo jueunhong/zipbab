@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Gowun_Dodum, Jua } from "next/font/google";
+import { Gowun_Dodum } from "next/font/google";
 import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
@@ -9,8 +9,7 @@ import NavLink from "@/components/NavLink";
 import logoHorizontal from "../../public/brand/logo-horizontal.png";
 import "./globals.css";
 
-// 제목·메뉴·버튼: 주아 (로고의 둥글고 도톰한 손글씨 느낌), 본문: 고운돋움 (부드럽고 작은 글씨도 잘 읽힘)
-const display = Jua({ weight: "400", subsets: ["latin"], display: "swap", variable: "--font-display-face" });
+// 글꼴: 고운돋움 하나로 통일 (부드럽고 둥글어 로고와 어울리고, 작은 글씨도 잘 읽힘)
 const body = Gowun_Dodum({ weight: "400", subsets: ["latin"], display: "swap", variable: "--font-body" });
 
 export const metadata: Metadata = {
@@ -42,7 +41,7 @@ async function NavLinks() {
   const user = await headerUser();
   if (!user) return null;
   return (
-    <div className="flex items-center gap-2.5 font-display text-[15px] sm:gap-4">
+    <div className="flex items-center gap-2 font-display text-sm sm:gap-4 sm:text-[15px]">
       <NavLink href="/">추천</NavLink>
       <NavLink href="/plan">식단</NavLink>
       <NavLink href="/pantry">재료</NavLink>
@@ -52,7 +51,7 @@ async function NavLinks() {
       <Link href="/household" className="flex items-center gap-1.5 text-foreground/80 hover:text-accent" title={`${user.email ?? ""} · 우리집`}>
         {user.avatarUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={user.avatarUrl} alt="우리집" className="h-7 w-7 rounded-full ring-2 ring-accent/20" referrerPolicy="no-referrer" />
+          <img src={user.avatarUrl} alt="우리집" className="h-6 w-6 rounded-full ring-2 ring-accent/20 sm:h-7 sm:w-7" referrerPolicy="no-referrer" />
         ) : (
           <span aria-label="우리집">🏠</span>
         )}
@@ -64,12 +63,12 @@ async function NavLinks() {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ko" className={`h-full antialiased ${display.variable} ${body.variable}`}>
+    <html lang="ko" className={`h-full antialiased ${body.variable}`}>
       <body className="min-h-full flex flex-col">
         <header className="sticky top-0 z-10 border-b border-line bg-background/85 backdrop-blur">
           <nav className="mx-auto max-w-3xl px-4 h-14 flex items-center justify-between gap-3">
             <Link href="/" className="shrink-0" aria-label="Zipbab 홈">
-              <Image src={logoHorizontal} alt="Zipbab" priority sizes="140px" className="h-7 w-auto sm:h-8" />
+              <Image src={logoHorizontal} alt="Zipbab" priority sizes="140px" className="h-6 w-auto sm:h-8" />
             </Link>
             <Suspense fallback={<div className="h-5 w-48 animate-pulse rounded bg-line" />}>
               <NavLinks />
