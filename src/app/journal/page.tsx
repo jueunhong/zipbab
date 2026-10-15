@@ -198,8 +198,10 @@ export default function Journal() {
                 <img src={meal.thumbUrl} alt={meal.title} loading="lazy" decoding="async" className="aspect-square w-full bg-line object-cover transition group-hover:scale-105" />
                 <div className="p-2">
                   <p className="truncate text-sm font-medium">{meal.title}</p>
-                  <StarRating value={meal.rating} size="sm" showNumber={meal.ratings.length > 1} />
-                  <CookBadge member={members.find((m) => m.userId === meal.cookId)} />
+                  <CookBadge member={members.find((m) => m.userId === meal.cookId)} block />
+                  <div>
+                    <StarRating value={meal.rating} size="sm" showNumber={meal.ratings.length > 1} />
+                  </div>
                   <p className="text-xs text-muted">{meal.date}</p>
                 </div>
               </button>

@@ -20,11 +20,11 @@ export function MemberAvatar({ member, size = 20 }: { member: HouseholdMember | 
   );
 }
 
-/** "👩‍🍳 홍주은" — 요리사 표시 (지정 안 됐으면 아무것도 안 그림) */
-export function CookBadge({ member, size = "sm" }: { member: HouseholdMember | undefined; size?: "sm" | "md" }) {
+/** "👩‍🍳 홍주은" — 요리사 표시 (지정 안 됐으면 아무것도 안 그림). block 이면 한 줄을 차지한다 */
+export function CookBadge({ member, size = "sm", block = false }: { member: HouseholdMember | undefined; size?: "sm" | "md"; block?: boolean }) {
   if (!member) return null;
   return (
-    <span className={`inline-flex min-w-0 items-center gap-1 ${size === "sm" ? "text-[11px]" : "text-sm"} text-muted`}>
+    <span className={`${block ? "flex" : "inline-flex"} min-w-0 items-center gap-1 ${size === "sm" ? "text-[11px]" : "text-sm"} text-muted`}>
       <span aria-hidden>👩‍🍳</span>
       <MemberAvatar member={member} size={size === "sm" ? 14 : 18} />
       <span className="truncate">{member.name}</span>
