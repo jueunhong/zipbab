@@ -50,7 +50,7 @@ export default function InvitePage() {
         {info && (
           <>
             <div>
-              <h1 className="text-xl font-bold">
+              <h1 className="text-xl">
                 {info.inviterName}님이
                 <br />‘{info.householdName}’에 초대했어요
               </h1>

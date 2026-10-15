@@ -217,7 +217,7 @@ export default function WeekPlanner() {
       <div className="space-y-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold">주간 식단</h1>
+            <h1 className="text-2xl">주간 식단</h1>
             <p className="mt-1 text-sm text-muted">
               {shortLabel(start)} ~ {shortLabel(end)}
               {!loading && planned > 0 && ` · ${planned}끼 계획, ${cooked}끼 완료`}
@@ -274,14 +274,27 @@ export default function WeekPlanner() {
               <DropZone
                 key={day}
                 id={day}
-                className={`flex min-h-28 flex-col gap-1.5 rounded-xl border bg-surface p-2 transition ${isToday ? "border-accent" : "border-line"} ${past ? "opacity-80" : ""}`}
+                className={`flex flex-col gap-1.5 rounded-xl border bg-surface p-2 transition md:min-h-36 ${isToday ? "border-accent" : "border-line"} ${past ? "opacity-80" : ""}`}
                 overClassName="!border-accent bg-accent/10 ring-2 ring-accent"
               >
-                <header className="flex items-baseline justify-between px-0.5">
-                  <span className={`text-sm font-semibold ${isToday ? "text-accent" : ""}`}>
-                    {weekdayLabel(day)} <span className="font-normal">{Number(day.slice(8))}</span>
+                <header className="flex items-center justify-between gap-1 px-0.5">
+                  <span className="flex items-baseline gap-1">
+                    <span
+                      className={`font-display text-[15px] ${
+                        isToday ? "text-accent" : weekdayLabel(day) === "일" ? "text-red-500" : weekdayLabel(day) === "토" ? "text-blue-500" : ""
+                      }`}
+                    >
+                      {weekdayLabel(day)} {Number(day.slice(8))}
+                    </span>
+                    {isToday && <span className="rounded-full bg-accent px-1.5 text-[10px] leading-4 text-white md:hidden">오늘</span>}
                   </span>
-                  {isToday && <span className="text-[10px] text-accent">오늘</span>}
+                  <button
+                    onClick={() => setAddingDate(day)}
+                    aria-label={`${shortLabel(day)} 식단 추가`}
+                    className="shrink-0 rounded-full border border-line px-2 py-0.5 text-xs text-muted hover:border-accent hover:text-accent"
+                  >
+                    +<span className="md:hidden"> 추가</span>
+                  </button>
                 </header>
 
                 {dayPlans.map((plan) => (
@@ -307,12 +320,6 @@ export default function WeekPlanner() {
                   </button>
                 ))}
 
-                <button
-                  onClick={() => setAddingDate(day)}
-                  className="mt-auto rounded-lg border border-dashed border-line py-1.5 text-center text-xs text-muted hover:border-accent hover:text-accent"
-                >
-                  + 추가
-                </button>
               </DropZone>
             );
           })}
@@ -359,7 +366,7 @@ export default function WeekPlanner() {
               />
               <div className="card">
                 <div className="flex justify-between">
-                  <h2 className="text-lg font-bold">{openMeal.title}</h2>
+                  <h2 className="text-lg">{openMeal.title}</h2>
                   <span className="text-sm text-muted">{shortLabel(openMeal.date)}</span>
                 </div>
                 <div className="mt-1">
@@ -423,7 +430,7 @@ function PlanDetail({
           <p className="text-sm text-muted">
             {shortLabel(plan.date)} · {SLOT_ICON[plan.slot]} {plan.slot}
           </p>
-          <h2 className="text-lg font-bold">{plan.title}</h2>
+          <h2 className="text-lg">{plan.title}</h2>
           {meal && (
             <div className="flex flex-wrap items-center gap-2">
               <p className="text-sm text-fat">✅ {shortLabel(meal.date)}에 만들어 먹었어요</p>

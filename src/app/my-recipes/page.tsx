@@ -20,7 +20,7 @@ function MyRecipeView({ recipe }: { recipe: MyRecipe }) {
         />
       )}
       <div>
-        <h2 className="text-xl font-bold">{recipe.title}</h2>
+        <h2 className="text-xl">{recipe.title}</h2>
         {recipe.description && <p className="mt-1 whitespace-pre-wrap text-sm text-muted">{recipe.description}</p>}
         <div className="mt-2 flex gap-2 text-xs">
           {recipe.cookTimeMinutes && <span className="rounded-full border border-line px-2 py-0.5">⏱ {recipe.cookTimeMinutes}분</span>}
@@ -32,7 +32,7 @@ function MyRecipeView({ recipe }: { recipe: MyRecipe }) {
 
       {recipe.ingredients.length > 0 && (
         <section>
-          <h3 className="mb-2 font-semibold">재료</h3>
+          <h3 className="mb-2">재료</h3>
           <ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
             {recipe.ingredients.map((ing, i) => (
               <li key={i} className="flex justify-between border-b border-line py-1">
@@ -46,7 +46,7 @@ function MyRecipeView({ recipe }: { recipe: MyRecipe }) {
 
       {recipe.steps.length > 0 && (
         <section>
-          <h3 className="mb-2 font-semibold">만드는 법</h3>
+          <h3 className="mb-2">만드는 법</h3>
           <ol className="list-decimal space-y-1.5 pl-5 text-sm">
             {recipe.steps.map((step, i) => (
               <li key={i} className="whitespace-pre-wrap">{step}</li>
@@ -57,7 +57,7 @@ function MyRecipeView({ recipe }: { recipe: MyRecipe }) {
 
       {recipe.tips && (
         <section>
-          <h3 className="mb-2 font-semibold">팁·메모</h3>
+          <h3 className="mb-2">팁·메모</h3>
           <p className="whitespace-pre-wrap text-sm text-muted">{recipe.tips}</p>
         </section>
       )}
@@ -138,7 +138,7 @@ export default function MyRecipes() {
       <RecipeBookTabs active="mine" />
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold">내 레시피</h1>
+          <h1 className="text-2xl">내 레시피</h1>
           <p className="mt-1 text-sm text-muted">{recipes ? `직접 만든 레시피 ${recipes.length}개` : "불러오는 중…"}</p>
         </div>
         <button className="btn" onClick={() => { clearDraft(); setEditing("new"); }}>

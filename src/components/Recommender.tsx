@@ -197,7 +197,7 @@ export default function Recommender() {
     <div className="space-y-6">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">{planDate ? `${shortLabel(planDate)} 뭐 해먹지?` : "오늘 뭐 해먹지?"}</h1>
+          <h1 className="text-2xl">{planDate ? `${shortLabel(planDate)} 뭐 해먹지?` : "오늘 뭐 해먹지?"}</h1>
           <p className="mt-1 text-sm text-muted">탄·단·지 균형 잡힌, 간단하고 맛있는 집밥을 추천해 드려요.</p>
         </div>
         <button
@@ -234,7 +234,7 @@ export default function Recommender() {
                           key={item.id}
                           type="button"
                           onClick={() => toggle(item.id)}
-                          className={`rounded-full px-2.5 py-1 text-xs ${on ? "bg-accent text-white" : "border border-line text-muted line-through"}`}
+                          className={`rounded-full border px-2.5 py-1 text-xs transition ${on ? "border-accent/30 bg-accent/10 text-accent" : "border-line text-muted line-through"}`}
                         >
                           {item.name}
                           {days !== null && days <= 3 && ` · ${dDayLabel(days)}`}

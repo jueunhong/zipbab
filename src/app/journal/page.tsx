@@ -110,7 +110,7 @@ export default function Journal() {
     <div className="space-y-6">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-bold">나의 집밥 기록</h1>
+          <h1 className="text-2xl">나의 집밥 기록</h1>
           <p className="mt-1 text-sm text-muted">지금까지 {meals.length}끼를 직접 해먹었어요.</p>
           {meals.length > 0 && (
             <div className="mt-2 inline-flex rounded-lg border border-line p-0.5 text-xs" role="group" aria-label="사진 보기">
@@ -194,7 +194,7 @@ export default function Journal() {
             <img src={selected.photoUrl} alt={selected.title} decoding="async" className="w-full rounded-2xl bg-line" style={{ backgroundImage: `url(${selected.thumbUrl})`, backgroundSize: "cover" }} />
             <div className="card">
               <div className="flex justify-between">
-                <h2 className="text-lg font-bold">{selected.title}</h2>
+                <h2 className="text-lg">{selected.title}</h2>
                 <span className="text-sm text-muted">{selected.date}</span>
               </div>
               <div className="mt-1 flex flex-wrap items-center gap-2">

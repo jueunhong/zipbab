@@ -114,7 +114,7 @@ export default function MyRecipeForm({
 
   return (
     <form onSubmit={submit} className="card space-y-5">
-      <h2 className="text-lg font-bold">{editing ? "레시피 수정" : "새 레시피"}</h2>
+      <h2 className="text-lg">{editing ? "레시피 수정" : "새 레시피"}</h2>
       {initial && !editing && <p className="-mt-3 text-xs text-muted">추천받은 레시피를 채워 뒀어요. 원하는 대로 고친 뒤 저장하세요.</p>}
 
       <PhotoPicker
@@ -154,7 +154,7 @@ export default function MyRecipeForm({
       </div>
 
       <section className="space-y-2">
-        <h3 className="text-sm font-semibold">재료</h3>
+        <h3 className="text-sm">재료</h3>
         {ingredients.map((ing, i) => (
           <div key={i} className="flex gap-2">
             <input className="input flex-[2]" placeholder="재료 (예: 두부)" value={ing.name} onChange={(e) => updateIngredient(i, { name: e.target.value })} />
@@ -175,7 +175,7 @@ export default function MyRecipeForm({
       </section>
 
       <section className="space-y-2">
-        <h3 className="text-sm font-semibold">만드는 법</h3>
+        <h3 className="text-sm">만드는 법</h3>
         {steps.map((step, i) => (
           <div key={i} className="flex gap-2">
             <span className="mt-2 w-5 shrink-0 text-right text-sm text-muted">{i + 1}.</span>
@@ -204,7 +204,7 @@ export default function MyRecipeForm({
 
       <section className="space-y-2">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">1인분 영양 (선택)</h3>
+          <h3 className="text-sm">1인분 영양 (선택)</h3>
           <button
             type="button"
             onClick={estimate}

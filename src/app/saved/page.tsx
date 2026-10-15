@@ -41,7 +41,7 @@ export default function Saved() {
     <div className="space-y-6">
       <RecipeBookTabs active="saved" />
       <div>
-        <h1 className="text-2xl font-bold">찜한 레시피</h1>
+        <h1 className="text-2xl">찜한 레시피</h1>
         <p className="mt-1 text-sm text-muted">
           {saved ? `${saved.length}개의 레시피를 찜했어요.` : "불러오는 중…"}
         </p>

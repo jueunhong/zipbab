@@ -62,7 +62,7 @@ export default function Pantry() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">우리집 재료</h1>
+        <h1 className="text-2xl">우리집 재료</h1>
         <p className="mt-1 text-sm text-muted">저장해 둔 재료로 레시피를 추천받을 수 있어요. 유통기한이 임박한 재료를 먼저 써요.</p>
       </div>
 
@@ -73,7 +73,7 @@ export default function Pantry() {
               key={c}
               type="button"
               onClick={() => setCategory(c)}
-              className={`rounded-full px-3 py-1 text-sm ${category === c ? "bg-accent text-white" : "border border-line"}`}
+              className={`flex-1 whitespace-nowrap rounded-full px-2 py-1.5 text-sm ${category === c ? "bg-accent text-white" : "border border-line bg-surface"}`}
             >
               {CATEGORY_ICON[c]} {c}
             </button>
@@ -112,7 +112,7 @@ export default function Pantry() {
             if (group.length === 0) return null;
             return (
               <section key={c} className="card">
-                <h2 className="mb-3 font-semibold">
+                <h2 className="mb-3">
                   {CATEGORY_ICON[c]} {c} <span className="text-sm font-normal text-muted">{group.length}</span>
                 </h2>
                 <ul className="flex flex-wrap gap-2">

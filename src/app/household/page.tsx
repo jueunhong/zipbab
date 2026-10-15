@@ -119,7 +119,7 @@ export default function HouseholdPage() {
           </form>
         ) : (
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">🏠 {household.name}</h1>
+            <h1 className="text-2xl">🏠 {household.name}</h1>
             <button
               onClick={() => {
                 setName(household.name);
@@ -141,7 +141,7 @@ export default function HouseholdPage() {
       {error && <div className="card text-sm text-red-600">{error}</div>}
 
       <section className="card space-y-3">
-        <h2 className="font-semibold">멤버</h2>
+        <h2 className="">멤버</h2>
         <ul className="space-y-2">
           {household.members.map((m) => (
             <li key={m.userId} className="flex items-center gap-3">
@@ -161,7 +161,7 @@ export default function HouseholdPage() {
       </section>
 
       <section className="card space-y-3">
-        <h2 className="font-semibold">친구 초대하기</h2>
+        <h2 className="">친구 초대하기</h2>
         {invite ? (
           <>
             <div className="flex gap-2">

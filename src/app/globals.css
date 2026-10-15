@@ -1,29 +1,18 @@
 @import "tailwindcss";
 
+/* Zipbab 브랜드: 크림 배경 + 고추장 빨강. 로고가 크림 바탕용이라 밝은 테마 하나로 쓴다 */
 :root {
-  --background: #faf7f2;
-  --foreground: #2b2622;
-  --surface: #ffffff;
-  --muted: #7a7068;
-  --line: #e8e1d8;
-  --accent: #d9622b;
-  --carbs: #e0a530;
-  --protein: #d9622b;
-  --fat: #5b8c5a;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #181614;
-    --foreground: #eee8e2;
-    --surface: #221f1c;
-    --muted: #a59b92;
-    --line: #36312c;
-    --accent: #f08a54;
-    --carbs: #e8b955;
-    --protein: #f08a54;
-    --fat: #7fb07e;
-  }
+  --background: #fcf8ed;
+  --foreground: #2e2420;
+  --surface: #fffdf8;
+  --muted: #8a7b6e;
+  --line: #ecdfcb;
+  --accent: #bc2b1f;
+  --accent-strong: #9e2218;
+  --carbs: #d99a2b;
+  --protein: #bc2b1f;
+  --fat: #5e8c55;
+  color-scheme: light;
 }
 
 @theme inline {
@@ -33,25 +22,42 @@
   --color-muted: var(--muted);
   --color-line: var(--line);
   --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
   --color-carbs: var(--carbs);
   --color-protein: var(--protein);
   --color-fat: var(--fat);
+  /* 본문: 고운돋움 / 제목·메뉴·버튼: 주아 (layout.tsx 에서 불러옴) */
+  --font-sans: var(--font-body), "Apple SD Gothic Neo", system-ui, sans-serif;
+  --font-display: var(--font-display-face), var(--font-body), "Apple SD Gothic Neo", system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* 제목은 로고처럼 둥글고 도톰한 주아체로. 굵게 처리하면 뭉개져서 원래 굵기로 둔다 */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 20%, transparent);
 }
 
 .input {
-  @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-accent;
+  @apply w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/15;
 }
 
 .btn {
-  @apply rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50;
+  @apply rounded-xl bg-accent px-4 py-2 font-display text-[15px] text-white shadow-[0_2px_0_var(--accent-strong)] transition hover:bg-accent-strong active:translate-y-px active:shadow-none disabled:opacity-50 disabled:shadow-none;
 }
 
 .card {
-  @apply rounded-2xl border border-line bg-surface p-5;
+  @apply rounded-2xl border border-line bg-surface p-5 shadow-[0_1px_2px_rgba(46,36,32,0.04)];
 }

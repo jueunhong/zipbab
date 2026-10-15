@@ -58,7 +58,7 @@ export default function RecipeReviser({
   return (
     <div className="card space-y-3 !p-4">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">✏️ 어떻게 바꿀까요?</h3>
+        <h3 className="text-sm">✏️ 어떻게 바꿀까요?</h3>
         <button type="button" onClick={() => setOpen(false)} className="text-xs text-muted" aria-label="닫기">
           접기
         </button>

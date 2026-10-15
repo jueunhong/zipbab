@@ -58,7 +58,7 @@ export default function QuickAddPlan({ date, onClose, onAdded }: { date: string;
     <div className="fixed inset-0 z-20 flex items-end justify-center bg-black/60 p-4 sm:items-center" onClick={onClose}>
       <div className="card w-full max-w-md space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold">{shortLabel(date)} 식단 추가</h2>
+          <h2 className="text-lg">{shortLabel(date)} 식단 추가</h2>
           <button onClick={onClose} className="h-8 w-8 rounded-full text-muted hover:bg-line" aria-label="닫기">
             ×
           </button>

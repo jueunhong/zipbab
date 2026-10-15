@@ -40,7 +40,7 @@ export default function RecipeCard({ recipe, withImage = false }: { recipe: Reci
     <article className="card space-y-5">
       {withImage && <RecipeImages query={recipe.searchKeyword || recipe.title} />}
       <div>
-        <h2 className="text-xl font-bold">{recipe.title}</h2>
+        <h2 className="text-xl">{recipe.title}</h2>
         <p className="mt-1 text-sm text-muted">{recipe.summary}</p>
         <div className="mt-2 flex gap-2 text-xs">
           <span className="rounded-full border border-line px-2 py-0.5">⏱ {recipe.cookTimeMinutes}분</span>
@@ -53,7 +53,7 @@ export default function RecipeCard({ recipe, withImage = false }: { recipe: Reci
       <p className="text-sm">{recipe.balanceNote}</p>
 
       <section>
-        <h3 className="mb-2 font-semibold">재료</h3>
+        <h3 className="mb-2">재료</h3>
         <ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
           {recipe.ingredients.map((ing) => (
             <li key={ing.name} className="flex justify-between border-b border-line py-1">
@@ -65,7 +65,7 @@ export default function RecipeCard({ recipe, withImage = false }: { recipe: Reci
       </section>
 
       <section>
-        <h3 className="mb-2 font-semibold">만드는 법</h3>
+        <h3 className="mb-2">만드는 법</h3>
         <ol className="list-decimal space-y-1.5 pl-5 text-sm">
           {recipe.steps.map((step, i) => (
             <li key={i}>{step}</li>
@@ -75,7 +75,7 @@ export default function RecipeCard({ recipe, withImage = false }: { recipe: Reci
 
       {recipe.tips.length > 0 && (
         <section>
-          <h3 className="mb-2 font-semibold">팁</h3>
+          <h3 className="mb-2">팁</h3>
           <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
             {recipe.tips.map((tip, i) => (
               <li key={i}>{tip}</li>

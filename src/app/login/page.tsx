@@ -1,4 +1,6 @@
+import Image from "next/image";
 import { safeNext } from "@/lib/redirect";
+import logo from "../../../public/brand/logo.png";
 
 const ERRORS: Record<string, string> = {
   start: "구글 로그인을 시작하지 못했어요. 잠시 후 다시 시도해 주세요.",
@@ -42,9 +44,9 @@ export default async function Login({ searchParams }: PageProps<"/login">) {
     <div className="mx-auto mt-16 max-w-sm">
       <div className="card space-y-5 text-center">
         <div>
-          <div className="text-4xl">🍚</div>
-          <h1 className="mt-2 text-xl font-bold">집밥</h1>
-          <p className="mt-1 text-sm text-muted">건강하고 간단한 집밥 레시피를 추천받고, 내가 만든 요리를 기록해요.</p>
+          <h1 className="sr-only">Zipbab 집밥</h1>
+          <Image src={logo} alt="Zipbab" priority sizes="192px" className="mx-auto h-auto w-48" />
+          <p className="mt-3 text-sm text-muted">건강하고 간단한 집밥 레시피를 추천받고, 내가 만든 요리를 기록해요.</p>
         </div>
         <a
           href={`/auth/login?next=${encodeURIComponent(next)}`}
