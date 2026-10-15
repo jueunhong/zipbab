@@ -16,12 +16,16 @@ export const POST = withErrors(async (request: Request) => {
   const recipeRaw = form.get("recipe");
   const recipe = typeof recipeRaw === "string" && recipeRaw ? RecipeSchema.safeParse(JSON.parse(recipeRaw)).data : undefined;
 
+  const ratingRaw = Number(form.get("rating"));
+  const rating = Number.isInteger(ratingRaw) && ratingRaw >= 1 && ratingRaw <= 6 ? ratingRaw : null;
+
   const mealId = await addMeal({
     title: String(form.get("title") || recipe?.title || "오늘의 집밥"),
     memo: String(form.get("memo") || ""),
     date: String(form.get("date") || todayIn("Asia/Seoul")),
     photoPath: await savePhoto(photo as File, thumbnailFrom(form)),
     recipe,
+    rating,
   });
 
   // 식단에서 "만들었어요"로 기록한 경우, 그 식단 칸에 이 사진을 연결한다

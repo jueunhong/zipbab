@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QuickAddPlan from "@/components/QuickAddPlan";
 import RecipeCard from "@/components/RecipeCard";
+import StarRating from "@/components/StarRating";
 import { addDays, shortLabel, today, weekStart, weekdayLabel } from "@/lib/dates";
 import { MEAL_SLOTS, type Meal, type MealPlan, type MealSlot } from "@/lib/types";
 
@@ -49,6 +50,11 @@ function PlanChipView({ plan, meal, lifted = false }: { plan: MealPlan; meal?: M
         <span className="line-clamp-2 flex-1">{plan.title}</span>
         {meal && <span title="만들어 먹었어요">✅</span>}
       </div>
+      {meal?.rating ? (
+        <div className="px-1.5 pb-1.5">
+          <StarRating value={meal.rating} size="sm" />
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -280,7 +286,10 @@ export default function WeekPlanner() {
                   <button key={meal.id} onClick={() => setOpenMeal(meal)} className="overflow-hidden rounded-lg border border-line text-left text-xs">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={meal.thumbUrl} alt={meal.title} loading="lazy" decoding="async" className="aspect-[4/3] w-full bg-line object-cover" />
-                    <p className="truncate p-1.5">📸 {meal.title}</p>
+                    <p className="truncate p-1.5 pb-0">📸 {meal.title}</p>
+                    <div className="px-1.5 pb-1.5">
+                      <StarRating value={meal.rating} size="sm" />
+                    </div>
                   </button>
                 ))}
 
@@ -338,6 +347,9 @@ export default function WeekPlanner() {
                 <div className="flex justify-between">
                   <h2 className="text-lg font-bold">{openMeal.title}</h2>
                   <span className="text-sm text-muted">{shortLabel(openMeal.date)}</span>
+                </div>
+                <div className="mt-1">
+                  <StarRating value={openMeal.rating} />
                 </div>
                 {openMeal.memo && <p className="mt-2 whitespace-pre-wrap text-sm">{openMeal.memo}</p>}
               </div>
@@ -398,7 +410,13 @@ function PlanDetail({
             {shortLabel(plan.date)} · {SLOT_ICON[plan.slot]} {plan.slot}
           </p>
           <h2 className="text-lg font-bold">{plan.title}</h2>
-          {meal && <p className="text-sm text-fat">✅ {shortLabel(meal.date)}에 만들어 먹었어요</p>}
+          {meal && (
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm text-fat">✅ {shortLabel(meal.date)}에 만들어 먹었어요</p>
+              <StarRating value={meal.rating} />
+            </div>
+          )}
+          {meal?.memo && <p className="whitespace-pre-wrap text-sm">{meal.memo}</p>}
         </div>
 
         {meal && (

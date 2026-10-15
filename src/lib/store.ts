@@ -27,6 +27,7 @@ type MealRow = {
   date: string;
   photo_path: string;
   recipe: Recipe | null;
+  rating?: number | null; // 007 SQL 전에는 컬럼이 없어서 undefined
   created_at: string;
 };
 
@@ -58,12 +59,20 @@ export async function listMeals(range?: { from: string; to: string }): Promise<M
     photoUrl: photoUrl(r.photo_path),
     thumbUrl: photoUrl(r.photo_path, "thumb"),
     recipe: r.recipe ?? undefined,
+    rating: r.rating ?? null,
     createdAt: r.created_at,
   }));
 }
 
 /** 기록을 저장하고 새 기록의 id 를 돌려준다 */
-export async function addMeal(meal: { title: string; memo: string; date: string; photoPath: string; recipe?: Recipe }): Promise<string> {
+export async function addMeal(meal: {
+  title: string;
+  memo: string;
+  date: string;
+  photoPath: string;
+  recipe?: Recipe;
+  rating?: number | null;
+}): Promise<string> {
   const row = check<{ id: string }>(
     await (await supabase())
       .from("meals")
@@ -73,6 +82,8 @@ export async function addMeal(meal: { title: string; memo: string; date: string;
         date: meal.date,
         photo_path: meal.photoPath,
         recipe: meal.recipe ?? null,
+        // 별점을 매겼을 때만 보낸다 (007 SQL 전에도 별점 없는 기록은 저장되도록)
+        ...(meal.rating ? { rating: meal.rating } : {}),
       })
       .select("id")
       .single(),

@@ -133,5 +133,6 @@ export type Meal = {
   photoUrl: string;
   thumbUrl: string;
   recipe?: Recipe;
+  rating: number | null; // 1~6
   createdAt: string;
 };

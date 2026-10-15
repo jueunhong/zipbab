@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PhotoPicker, { usePhoto } from "@/components/PhotoPicker";
 import RecipeCard from "@/components/RecipeCard";
+import StarRating from "@/components/StarRating";
 import { today } from "@/lib/dates";
 import { compressImage, makeThumbnail } from "@/lib/image";
 import type { Meal, Recipe } from "@/lib/types";
@@ -16,6 +17,7 @@ export default function Journal() {
   const [pendingPlan, setPendingPlan] = useState<{ planId: string; date: string; title?: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
   const photo = usePhoto();
+  const [rating, setRating] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [selected, setSelected] = useState<Meal | null>(null);
@@ -68,6 +70,7 @@ export default function Journal() {
     form.set("thumb", thumb);
     if (pendingRecipe) form.set("recipe", JSON.stringify(pendingRecipe));
     if (pendingPlan) form.set("planId", pendingPlan.planId);
+    if (rating) form.set("rating", String(rating));
     const res = await fetch("/api/meals", { method: "POST", body: form });
     const data = await res.json().catch(() => ({ error: "업로드에 실패했어요." }));
     setSaving(false);
@@ -75,6 +78,7 @@ export default function Journal() {
 
     clearPending();
     pickPhoto(null);
+    setRating(null);
     setShowForm(false);
     // 식단에서 왔으면 사진이 붙은 식단 화면으로 돌아간다
     if (pendingPlan) return router.push(`/plan?week=${form.get("date")}`);
@@ -101,11 +105,15 @@ export default function Journal() {
             <input name="title" className="input" placeholder="요리 이름" defaultValue={pendingRecipe?.title ?? pendingPlan?.title ?? ""} />
             <input name="date" type="date" className="input" defaultValue={pendingPlan?.date ?? today()} />
           </div>
+          <div className="rounded-lg border border-line px-3 py-2.5">
+            <p className="mb-1 text-xs text-muted">오늘 요리는 몇 점인가요?</p>
+            <StarRating value={rating} onChange={setRating} size="lg" />
+          </div>
           <textarea name="memo" className="input min-h-20" placeholder="맛은 어땠나요? 다음엔 뭘 바꿔볼까요?" />
           {error && <p className="text-sm text-red-600">{error}</p>}
           <div className="flex gap-2">
             <button className="btn flex-1" disabled={saving}>{saving ? "저장 중…" : "저장"}</button>
-            <button type="button" className="rounded-lg border border-line px-4 py-2 text-sm" onClick={() => { pickPhoto(null); clearPending(); setError(""); setShowForm(false); }}>
+            <button type="button" className="rounded-lg border border-line px-4 py-2 text-sm" onClick={() => { pickPhoto(null); setRating(null); clearPending(); setError(""); setShowForm(false); }}>
               취소
             </button>
           </div>
@@ -124,6 +132,7 @@ export default function Journal() {
               <img src={meal.thumbUrl} alt={meal.title} loading="lazy" decoding="async" className="aspect-square w-full bg-line object-cover transition group-hover:scale-105" />
               <div className="p-2">
                 <p className="truncate text-sm font-medium">{meal.title}</p>
+                <StarRating value={meal.rating} size="sm" />
                 <p className="text-xs text-muted">{meal.date}</p>
               </div>
             </button>
@@ -140,6 +149,9 @@ export default function Journal() {
               <div className="flex justify-between">
                 <h2 className="text-lg font-bold">{selected.title}</h2>
                 <span className="text-sm text-muted">{selected.date}</span>
+              </div>
+              <div className="mt-1">
+                <StarRating value={selected.rating} />
               </div>
               {selected.memo && <p className="mt-2 whitespace-pre-wrap text-sm">{selected.memo}</p>}
             </div>
