@@ -434,7 +434,7 @@ export default function WeekPlanner() {
                   </div>
                 ) : null}
                 {openMeal.memo && <p className="mt-2 whitespace-pre-wrap text-sm">{openMeal.memo}</p>}
-                {members.length > 1 && (
+                {members.length > 0 && (
                   <CookSection label="요리한 사람" members={members} value={openMeal.cookId} allowNone={false} onChange={(id) => setMealCook(openMeal.id, id)} />
                 )}
                 <div className="mt-3">

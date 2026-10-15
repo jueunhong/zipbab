@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import PhotoPicker, { usePhoto } from "@/components/PhotoPicker";
 import RecipeCard from "@/components/RecipeCard";
-import CookPicker, { CookBadge, CookSection } from "@/components/CookPicker";
+import CookPicker, { CookBadge, CookSection, InviteHint } from "@/components/CookPicker";
 import MealRatings from "@/components/MealRatings";
 import StarRating from "@/components/StarRating";
 import { withMyRating } from "@/lib/ratings";
@@ -154,10 +154,11 @@ export default function Journal() {
             <input name="title" className="input" placeholder="요리 이름" defaultValue={pendingRecipe?.title ?? pendingPlan?.title ?? ""} />
             <input name="date" type="date" className="input" defaultValue={pendingPlan?.date ?? today()} />
           </div>
-          {members.length > 1 && (
-            <div className="rounded-lg border border-line px-3 py-2.5">
-              <p className="mb-1.5 text-xs text-muted">👩‍🍳 누가 요리했나요?</p>
+          {members.length > 0 && (
+            <div className="space-y-1.5 rounded-lg border border-line px-3 py-2.5">
+              <p className="text-xs text-muted">👩‍🍳 누가 요리했나요?</p>
               <CookPicker members={members} value={formCook} onChange={setCookChoice} allowNone={false} />
+              {members.length === 1 && <InviteHint />}
             </div>
           )}
           <div className="rounded-lg border border-line px-3 py-2.5">
@@ -198,7 +199,7 @@ export default function Journal() {
                 <div className="p-2">
                   <p className="truncate text-sm font-medium">{meal.title}</p>
                   <StarRating value={meal.rating} size="sm" showNumber={meal.ratings.length > 1} />
-                  {members.length > 1 && <CookBadge member={members.find((m) => m.userId === meal.cookId)} />}
+                  <CookBadge member={members.find((m) => m.userId === meal.cookId)} />
                   <p className="text-xs text-muted">{meal.date}</p>
                 </div>
               </button>
@@ -223,7 +224,7 @@ export default function Journal() {
                 </p>
               )}
               {selected.memo && <p className="mt-2 whitespace-pre-wrap text-sm">{selected.memo}</p>}
-              {members.length > 1 && (
+              {members.length > 0 && (
                 <CookSection
                   label="요리한 사람"
                   members={members}

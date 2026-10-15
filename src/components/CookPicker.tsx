@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import type { HouseholdMember } from "@/lib/types";
 
 /** 멤버 프로필 사진 (없으면 이름 첫 글자) */
@@ -104,7 +105,20 @@ export function CookSection({
           }
         }}
       />
+      {members.length === 1 && <InviteHint />}
       {error && <p className="text-xs text-red-600">{error}</p>}
     </div>
+  );
+}
+
+/** 혼자 쓸 때: 친구를 초대하면 요리사로 고를 수 있다는 안내 */
+export function InviteHint() {
+  return (
+    <p className="text-xs text-muted">
+      친구를 초대하면 요리사로 고를 수 있어요.{" "}
+      <Link href="/household" className="text-accent underline">
+        초대하기
+      </Link>
+    </p>
   );
 }
