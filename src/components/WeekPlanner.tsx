@@ -38,25 +38,35 @@ const NEXT_WEEK = "drop:next-week";
 function PlanChipView({ plan, meal, lifted = false }: { plan: MealPlan; meal?: Meal; lifted?: boolean }) {
   return (
     <div
-      className={`w-full overflow-hidden rounded-lg border bg-surface text-left text-xs ${meal ? "border-fat" : "border-line"} ${
+      className={`flex w-full gap-2 overflow-hidden rounded-lg border bg-surface p-1.5 text-left text-xs md:block md:p-0 ${meal ? "border-fat" : "border-line"} ${
         lifted ? "rotate-2 shadow-xl ring-2 ring-accent" : ""
       }`}
     >
-      {meal && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={meal.thumbUrl} alt={meal.title} draggable={false} loading="lazy" decoding="async" className="pointer-events-none aspect-[4/3] w-full bg-line object-cover" />
-      )}
-      <div className="flex items-start gap-1 p-1.5">
-        <span title={plan.slot}>{SLOT_ICON[plan.slot]}</span>
-        <span className="line-clamp-2 flex-1">{plan.title}</span>
-        {meal && <span title="만들어 먹었어요">✅</span>}
-      </div>
-      {meal?.rating ? (
-        <div className="px-1.5 pb-1.5">
-          <StarRating value={meal.rating} size="sm" />
+      {meal && <MealThumb meal={meal} />}
+      <div className="min-w-0 flex-1 md:p-1.5">
+        <div className="flex items-start gap-1">
+          <span title={plan.slot}>{SLOT_ICON[plan.slot]}</span>
+          <span className="line-clamp-2 flex-1">{plan.title}</span>
+          {meal && <span title="만들어 먹었어요">✅</span>}
         </div>
-      ) : null}
+        {meal?.rating ? <StarRating value={meal.rating} size="sm" /> : null}
+      </div>
     </div>
+  );
+}
+
+/** 식단 칸의 사진: 휴대폰(세로 목록)은 왼쪽 작은 정사각형, 컴퓨터(좁은 7칸)는 칸 너비에 맞춘 사진 */
+function MealThumb({ meal }: { meal: Meal }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={meal.thumbUrl}
+      alt={meal.title}
+      draggable={false}
+      loading="lazy"
+      decoding="async"
+      className="pointer-events-none h-12 w-12 shrink-0 rounded-md bg-line object-cover md:aspect-[4/3] md:h-auto md:w-full md:rounded-none"
+    />
   );
 }
 
@@ -284,11 +294,14 @@ export default function WeekPlanner() {
                 ))}
 
                 {extraMeals.map((meal) => (
-                  <button key={meal.id} onClick={() => setOpenMeal(meal)} className="overflow-hidden rounded-lg border border-line text-left text-xs">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={meal.thumbUrl} alt={meal.title} loading="lazy" decoding="async" className="aspect-[4/3] w-full bg-line object-cover" />
-                    <p className="truncate p-1.5 pb-0">📸 {meal.title}</p>
-                    <div className="px-1.5 pb-1.5">
+                  <button
+                    key={meal.id}
+                    onClick={() => setOpenMeal(meal)}
+                    className="flex gap-2 overflow-hidden rounded-lg border border-line p-1.5 text-left text-xs md:block md:p-0"
+                  >
+                    <MealThumb meal={meal} />
+                    <div className="min-w-0 flex-1 md:p-1.5">
+                      <p className="truncate">📸 {meal.title}</p>
                       <StarRating value={meal.rating} size="sm" />
                     </div>
                   </button>
@@ -341,7 +354,7 @@ export default function WeekPlanner() {
                 src={openMeal.photoUrl}
                 alt={openMeal.title}
                 decoding="async"
-                className="w-full rounded-2xl bg-line"
+                className="max-h-[60vh] w-full rounded-2xl bg-line object-cover"
                 style={{ backgroundImage: `url(${openMeal.thumbUrl})`, backgroundSize: "cover" }}
               />
               <div className="card">
@@ -426,7 +439,7 @@ function PlanDetail({
             src={meal.photoUrl}
             alt={meal.title}
             decoding="async"
-            className="w-full rounded-2xl bg-line"
+            className="max-h-[60vh] w-full rounded-2xl bg-line object-cover"
             style={{ backgroundImage: `url(${meal.thumbUrl})`, backgroundSize: "cover" }}
           />
         )}
