@@ -12,10 +12,22 @@ import "./globals.css";
 // 글꼴: 고운돋움 하나로 통일 (부드럽고 둥글어 로고와 어울리고, 작은 글씨도 잘 읽힘)
 const body = Gowun_Dodum({ weight: "400", subsets: ["latin"], display: "swap", variable: "--font-body" });
 
+// 링크 미리보기(카카오톡 등)의 이미지는 app/opengraph-image.png (로고). 절대 주소가 필요해서 배포 주소를 기준으로 한다
+const siteUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Zipbab 집밥",
   description: "건강하고 간단한 집밥 레시피 추천과 요리 기록",
   appleWebApp: { title: "Zipbab", statusBarStyle: "default" },
+  openGraph: {
+    type: "website",
+    siteName: "Zipbab",
+    locale: "ko_KR",
+    title: "Zipbab 집밥",
+    description: "건강하고 간단한 집밥 레시피를 추천받고, 같이 만들어 먹은 요리를 기록해요.",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 // 페이지가 그려지기 전에도 브라우저가 앱 배경색(크림)을 쓰도록

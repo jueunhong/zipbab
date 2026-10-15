@@ -63,25 +63,24 @@ export default function HouseholdPage() {
     if (await call("/api/household/invite", { method: "POST" })) load();
   }
 
+  // 공유·복사할 초대 메시지
+  const inviteMessage = `‘${household?.name ?? "우리집"}’에 초대되었어요. 들어와서 같이 맛있게 집밥 해먹어요!`;
+
   async function shareInvite() {
-    const text = `${household?.name ?? "우리집"}에서 같이 집밥 해먹어요! 아래 링크로 들어와 주세요 🍚`;
-    // 휴대폰은 카톡 등으로 바로 보낼 수 있는 공유 창, 안 되면 링크 복사
+    // 휴대폰은 카톡 등으로 바로 보낼 수 있는 공유 창, 안 되면 메시지+링크 복사
     if (navigator.share) {
       try {
-        await navigator.share({ title: "집밥 초대", text, url: inviteUrl });
-        return;
+        await navigator.share({ title: "Zipbab 초대장", text: inviteMessage, url: inviteUrl });
       } catch {
         // 공유 창을 닫은 경우 — 아무것도 안 함
-        return;
       }
+      return;
     }
-    await navigator.clipboard.writeText(inviteUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    await copyInvite();
   }
 
   async function copyInvite() {
-    await navigator.clipboard.writeText(inviteUrl);
+    await navigator.clipboard.writeText(`${inviteMessage}\n${inviteUrl}`);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }

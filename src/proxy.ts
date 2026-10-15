@@ -31,7 +31,10 @@ export async function proxy(request: NextRequest) {
   const loggedIn = Boolean(data?.claims);
 
   const { pathname, search } = request.nextUrl;
-  if (loggedIn || PUBLIC_PATHS.includes(pathname)) {
+  // 초대 링크 페이지는 카카오톡 등이 미리보기(로고·제목)를 읽을 수 있게 로그인 없이 연다.
+  // 화면에서 초대 정보를 불러오는 API 는 로그인이 필요해서, 로그인 전이면 화면이 로그인으로 보낸다
+  const isInvitePage = /^\/invite\/[a-z0-9]+$/.test(pathname);
+  if (loggedIn || PUBLIC_PATHS.includes(pathname) || isInvitePage) {
     if (loggedIn && pathname === "/login") return NextResponse.redirect(new URL("/", request.url));
     return response;
   }
