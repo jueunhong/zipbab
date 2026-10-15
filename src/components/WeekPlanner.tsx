@@ -55,7 +55,7 @@ function PlanChipView({ plan, meal, lifted = false }: { plan: MealPlan; meal?: M
   );
 }
 
-/** 식단 칸의 사진: 휴대폰(세로 목록)은 왼쪽 작은 정사각형, 컴퓨터(좁은 7칸)는 칸 너비에 맞춘 사진 */
+/** 식단 칸의 사진: 휴대폰(세로 목록)은 칸 너비의 절반(왼쪽), 컴퓨터(좁은 7칸)는 칸 너비에 맞춘 사진 */
 function MealThumb({ meal }: { meal: Meal }) {
   return (
     // eslint-disable-next-line @next/next/no-img-element
@@ -65,7 +65,7 @@ function MealThumb({ meal }: { meal: Meal }) {
       draggable={false}
       loading="lazy"
       decoding="async"
-      className="pointer-events-none h-12 w-12 shrink-0 rounded-md bg-line object-cover md:aspect-[4/3] md:h-auto md:w-full md:rounded-none"
+      className="pointer-events-none aspect-[4/3] w-1/2 shrink-0 rounded-md bg-line object-cover md:w-full md:rounded-none"
     />
   );
 }
