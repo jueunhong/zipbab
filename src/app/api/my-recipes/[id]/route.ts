@@ -10,7 +10,7 @@ export const PATCH = withErrors(async (request: Request, { params }: Ctx) => {
   if ("error" in form) return Response.json({ error: form.error }, { status: 400 });
 
   await updateMyRecipe(id, form.input, {
-    newPhotoPath: form.photo ? await savePhoto(form.photo) : null,
+    newPhotoPath: form.photo ? await savePhoto(form.photo, form.thumb) : null,
     removePhoto: form.removePhoto,
   });
   return Response.json({ ok: true });

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import PhotoPicker, { usePhoto } from "@/components/PhotoPicker";
 import { MacroBar } from "@/components/RecipeCard";
-import { compressImage } from "@/lib/image";
+import { compressImage, makeThumbnail } from "@/lib/image";
 import type { MyRecipe, MyRecipeInput, Nutrition } from "@/lib/types";
 
 type Ingredient = { name: string; amount: string };
@@ -95,7 +95,11 @@ export default function MyRecipeForm({
     };
     const form = new FormData();
     form.set("data", JSON.stringify(input));
-    if (photo.file) form.set("photo", await compressImage(photo.file));
+    if (photo.file) {
+      const [full, thumb] = await Promise.all([compressImage(photo.file), makeThumbnail(photo.file)]);
+      form.set("photo", full);
+      form.set("thumb", thumb);
+    }
     else if (removePhoto) form.set("removePhoto", "1");
 
     const res = await fetch(editing ? `/api/my-recipes/${editing.id}` : "/api/my-recipes", {

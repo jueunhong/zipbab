@@ -11,7 +11,13 @@ function MyRecipeView({ recipe }: { recipe: MyRecipe }) {
     <article className="card space-y-5">
       {recipe.photoUrl && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={recipe.photoUrl} alt={recipe.title} className="aspect-[4/3] w-full rounded-xl object-cover" />
+        <img
+          src={recipe.photoUrl}
+          alt={recipe.title}
+          decoding="async"
+          className="aspect-[4/3] w-full rounded-xl bg-line object-cover"
+          style={recipe.thumbUrl ? { backgroundImage: `url(${recipe.thumbUrl})`, backgroundSize: "cover" } : undefined}
+        />
       )}
       <div>
         <h2 className="text-xl font-bold">{recipe.title}</h2>
@@ -159,7 +165,7 @@ export default function MyRecipes() {
               >
                 {recipe.photoUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={recipe.photoUrl} alt="" className="h-16 w-16 shrink-0 rounded-lg object-cover" />
+                  <img src={recipe.thumbUrl ?? recipe.photoUrl} alt="" loading="lazy" decoding="async" className="h-16 w-16 shrink-0 rounded-lg bg-line object-cover" />
                 ) : (
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg bg-line text-2xl">🍳</div>
                 )}

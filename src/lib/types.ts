@@ -81,6 +81,7 @@ export type MyRecipeInput = z.infer<typeof MyRecipeInputSchema>;
 export type MyRecipe = MyRecipeInput & {
   id: string;
   photoUrl: string | null;
+  thumbUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -130,6 +131,7 @@ export type Meal = {
   memo: string;
   date: string;
   photoUrl: string;
+  thumbUrl: string;
   recipe?: Recipe;
   createdAt: string;
 };

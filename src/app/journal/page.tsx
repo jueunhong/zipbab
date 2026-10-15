@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import PhotoPicker, { usePhoto } from "@/components/PhotoPicker";
 import RecipeCard from "@/components/RecipeCard";
 import { today } from "@/lib/dates";
-import { compressImage } from "@/lib/image";
+import { compressImage, makeThumbnail } from "@/lib/image";
 import type { Meal, Recipe } from "@/lib/types";
 
 export default function Journal() {
@@ -63,7 +63,9 @@ export default function Journal() {
       return setError("사진을 찍거나 갤러리에서 골라 주세요.");
     }
     const form = new FormData(e.currentTarget);
-    form.set("photo", await compressImage(photo.file));
+    const [full, thumb] = await Promise.all([compressImage(photo.file), makeThumbnail(photo.file)]);
+    form.set("photo", full);
+    form.set("thumb", thumb);
     if (pendingRecipe) form.set("recipe", JSON.stringify(pendingRecipe));
     if (pendingPlan) form.set("planId", pendingPlan.planId);
     const res = await fetch("/api/meals", { method: "POST", body: form });
@@ -119,7 +121,7 @@ export default function Journal() {
           {meals.map((meal) => (
             <button key={meal.id} onClick={() => setSelected(meal)} className="group overflow-hidden rounded-xl border border-line bg-surface text-left">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={meal.photoUrl} alt={meal.title} className="aspect-square w-full object-cover transition group-hover:scale-105" />
+              <img src={meal.thumbUrl} alt={meal.title} loading="lazy" decoding="async" className="aspect-square w-full bg-line object-cover transition group-hover:scale-105" />
               <div className="p-2">
                 <p className="truncate text-sm font-medium">{meal.title}</p>
                 <p className="text-xs text-muted">{meal.date}</p>
@@ -133,7 +135,7 @@ export default function Journal() {
         <div className="fixed inset-0 z-20 overflow-y-auto bg-black/60 p-4" onClick={() => setSelected(null)}>
           <div className="mx-auto max-w-2xl space-y-3" onClick={(e) => e.stopPropagation()}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={selected.photoUrl} alt={selected.title} className="w-full rounded-2xl" />
+            <img src={selected.photoUrl} alt={selected.title} decoding="async" className="w-full rounded-2xl bg-line" style={{ backgroundImage: `url(${selected.thumbUrl})`, backgroundSize: "cover" }} />
             <div className="card">
               <div className="flex justify-between">
                 <h2 className="text-lg font-bold">{selected.title}</h2>

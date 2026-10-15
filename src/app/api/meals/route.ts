@@ -1,4 +1,4 @@
-import { photoError, withErrors } from "@/lib/api";
+import { photoError, thumbnailFrom, withErrors } from "@/lib/api";
 import { todayIn } from "@/lib/dates";
 import { addMeal, listMeals, savePhoto, updatePlan } from "@/lib/store";
 import { RecipeSchema } from "@/lib/types";
@@ -20,7 +20,7 @@ export const POST = withErrors(async (request: Request) => {
     title: String(form.get("title") || recipe?.title || "오늘의 집밥"),
     memo: String(form.get("memo") || ""),
     date: String(form.get("date") || todayIn("Asia/Seoul")),
-    photoPath: await savePhoto(photo as File),
+    photoPath: await savePhoto(photo as File, thumbnailFrom(form)),
     recipe,
   });
 

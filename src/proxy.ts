@@ -45,6 +45,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // 정적 파일(_next, 파비콘, 이미지 등)은 잠그지 않는다
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)"],
+  // 정적 파일(_next, 파비콘, public 이미지 등)은 잠그지 않는다.
+  // 단, 사용자 사진(/api/photos/....jpg)은 확장자가 붙어 있어도 로그인 확인·세션 갱신을 거쳐야 한다
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|svg|webp|ico)$).*)", "/api/photos/:path*"],
 };

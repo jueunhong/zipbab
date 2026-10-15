@@ -9,6 +9,7 @@ export default function RecipeImages({ query }: { query: string }) {
   const [index, setIndex] = useState(0);
   // 원본 링크가 막히면 썸네일로, 썸네일도 막히면 그 사진을 목록에서 뺀다
   const [failed, setFailed] = useState<Record<string, "original" | "both">>({});
+  const [loaded, setLoaded] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -35,17 +36,23 @@ export default function RecipeImages({ query }: { query: string }) {
   const current = images[Math.min(index, images.length - 1)];
   const src = failed[current.url] === "original" ? current.thumbnail : current.url;
   const go = (step: number) => setIndex((i) => (i + step + images.length) % images.length);
+  const nextImage = images.length > 1 ? images[(Math.min(index, images.length - 1) + 1) % images.length] : null;
 
   return (
     <figure className="space-y-1.5">
       <div className="relative overflow-hidden rounded-2xl bg-line">
+        {/* 네이버 썸네일(작고 빠름)을 먼저 깔아 두고, 원본이 다 받아지면 그 위에 부드럽게 나타나게 한다 */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={current.thumbnail} alt="" aria-hidden referrerPolicy="no-referrer" className="aspect-[4/3] w-full scale-105 object-cover blur-sm" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           key={src}
           src={src}
           alt={`${query} 참고 이미지`}
           referrerPolicy="no-referrer"
-          className="aspect-[4/3] w-full object-cover"
+          decoding="async"
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${loaded[src] ? "opacity-100" : "opacity-0"}`}
+          onLoad={() => setLoaded((prev) => ({ ...prev, [src]: true }))}
           onError={() => setFailed((prev) => ({ ...prev, [current.url]: prev[current.url] === "original" ? "both" : "original" }))}
         />
         {images.length > 1 && (
@@ -72,6 +79,11 @@ export default function RecipeImages({ query }: { query: string }) {
           </>
         )}
       </div>
+      {/* 다음 사진을 미리 받아 둔다 (넘길 때 바로 보이게) */}
+      {nextImage && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={nextImage.url} alt="" aria-hidden referrerPolicy="no-referrer" className="hidden" />
+      )}
       <figcaption className="text-xs text-muted">
         참고 이미지 · 네이버 검색 결과예요. 실제 레시피와 모양이 다를 수 있어요.{" "}
         <a href={current.url} target="_blank" rel="noreferrer" className="underline">

@@ -8,7 +8,17 @@ import type { Meal, MealPlan, MealSlot, PlanInput, MyRecipe, MyRecipeInput, Nutr
 // 모든 요청은 로그인한 사용자의 세션으로 나가고, RLS 정책이 그 사용자의 데이터만 보이게 한다.
 // insert 할 때 user_id 는 DB 기본값(auth.uid())으로 자동으로 채워진다.
 
-const PHOTO_URL_TTL_SECONDS = 60 * 60;
+/**
+ * 사진 주소. 서명 URL 은 매번 바뀌어 브라우저가 캐시하지 못하므로, 고정 주소(/api/photos/...)로 내려주고
+ * 그 라우트가 로그인한 사용자의 권한으로 저장소에서 꺼내 "오래 캐시" 헤더를 붙여 보낸다.
+ * 썸네일은 원본 옆에 "<원본경로>.thumb.jpg" 로 저장한다 (없으면 라우트가 원본을 대신 보냄).
+ */
+export function photoUrl(path: string, size: "full" | "thumb" = "full"): string {
+  const encoded = path.split("/").map(encodeURIComponent).join("/");
+  return `/api/photos/${encoded}${size === "thumb" ? "?size=thumb" : ""}`;
+}
+
+export const thumbPathOf = (path: string) => `${path}.thumb.jpg`;
 
 type MealRow = {
   id: string;
@@ -40,16 +50,13 @@ export async function listMeals(range?: { from: string; to: string }): Promise<M
   const rows = check<MealRow[]>(await query.order("date", { ascending: false }).order("created_at", { ascending: false }));
   if (rows.length === 0) return [];
 
-  // 비공개 버킷이라 사진마다 일정 시간 유효한 서명 URL을 붙여서 내려준다
-  const signed = check(await (await supabase()).storage.from(PHOTO_BUCKET).createSignedUrls(rows.map((r) => r.photo_path), PHOTO_URL_TTL_SECONDS));
-  const urlByPath = new Map(signed.map((s) => [s.path, s.signedUrl]));
-
   return rows.map((r) => ({
     id: r.id,
     title: r.title,
     memo: r.memo,
     date: r.date,
-    photoUrl: urlByPath.get(r.photo_path) ?? "",
+    photoUrl: photoUrl(r.photo_path),
+    thumbUrl: photoUrl(r.photo_path, "thumb"),
     recipe: r.recipe ?? undefined,
     createdAt: r.created_at,
   }));
@@ -73,7 +80,8 @@ export async function addMeal(meal: { title: string; memo: string; date: string;
   return row.id;
 }
 
-export async function savePhoto(file: File): Promise<string> {
+/** 사진(과 썸네일)을 저장하고 원본 경로를 돌려준다 */
+export async function savePhoto(file: File, thumb?: File | null): Promise<string> {
   const client = await supabase();
   const user = await currentUser(client);
   if (!user) throw new Error("로그인이 필요해요.");
@@ -81,6 +89,11 @@ export async function savePhoto(file: File): Promise<string> {
   const ext = (path.extname(file.name) || ".jpg").toLowerCase();
   const photoPath = `${user.id}/${new Date().toISOString().slice(0, 7)}/${Date.now()}-${crypto.randomUUID().slice(0, 8)}${ext}`;
   check(await client.storage.from(PHOTO_BUCKET).upload(photoPath, file, { contentType: file.type }));
+  if (thumb) {
+    // 썸네일은 없어도 원본으로 대신 보여주므로, 실패해도 저장 자체는 성공으로 둔다
+    const { error } = await client.storage.from(PHOTO_BUCKET).upload(thumbPathOf(photoPath), thumb, { contentType: "image/jpeg" });
+    if (error) console.error("[savePhoto] thumbnail", error.message);
+  }
   return photoPath;
 }
 
@@ -184,13 +197,6 @@ export async function listMyRecipes(): Promise<MyRecipe[]> {
   const client = await supabase();
   const rows = check<MyRecipeRow[]>(await client.from("my_recipes").select("*").order("updated_at", { ascending: false }));
 
-  const paths = rows.map((r) => r.photo_path).filter((p): p is string => Boolean(p));
-  const urlByPath = new Map<string, string>();
-  if (paths.length > 0) {
-    const signed = check(await client.storage.from(PHOTO_BUCKET).createSignedUrls(paths, PHOTO_URL_TTL_SECONDS));
-    signed.forEach((s) => s.path && s.signedUrl && urlByPath.set(s.path, s.signedUrl));
-  }
-
   return rows.map((r) => ({
     id: r.id,
     title: r.title,
@@ -201,7 +207,8 @@ export async function listMyRecipes(): Promise<MyRecipe[]> {
     steps: r.steps,
     tips: r.tips,
     nutrition: r.nutrition,
-    photoUrl: r.photo_path ? (urlByPath.get(r.photo_path) ?? null) : null,
+    photoUrl: r.photo_path ? photoUrl(r.photo_path) : null,
+    thumbUrl: r.photo_path ? photoUrl(r.photo_path, "thumb") : null,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
   }));
@@ -233,14 +240,14 @@ export async function updateMyRecipe(
       })
       .eq("id", id),
   );
-  if (photoChanged && oldPath) await client.storage.from(PHOTO_BUCKET).remove([oldPath]);
+  if (photoChanged && oldPath) await client.storage.from(PHOTO_BUCKET).remove([oldPath, thumbPathOf(oldPath)]);
 }
 
 export async function deleteMyRecipe(id: string): Promise<void> {
   const client = await supabase();
   const { data } = await client.from("my_recipes").select("photo_path").eq("id", id).single();
   check(await client.from("my_recipes").delete().eq("id", id));
-  if (data?.photo_path) await client.storage.from(PHOTO_BUCKET).remove([data.photo_path]);
+  if (data?.photo_path) await client.storage.from(PHOTO_BUCKET).remove([data.photo_path, thumbPathOf(data.photo_path)]);
 }
 
 type MealPlanRow = {

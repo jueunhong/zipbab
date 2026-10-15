@@ -42,7 +42,7 @@ function PlanChipView({ plan, meal, lifted = false }: { plan: MealPlan; meal?: M
     >
       {meal && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={meal.photoUrl} alt={meal.title} draggable={false} className="pointer-events-none aspect-[4/3] w-full object-cover" />
+        <img src={meal.thumbUrl} alt={meal.title} draggable={false} loading="lazy" decoding="async" className="pointer-events-none aspect-[4/3] w-full bg-line object-cover" />
       )}
       <div className="flex items-start gap-1 p-1.5">
         <span title={plan.slot}>{SLOT_ICON[plan.slot]}</span>
@@ -279,7 +279,7 @@ export default function WeekPlanner() {
                 {extraMeals.map((meal) => (
                   <button key={meal.id} onClick={() => setOpenMeal(meal)} className="overflow-hidden rounded-lg border border-line text-left text-xs">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={meal.photoUrl} alt={meal.title} className="aspect-[4/3] w-full object-cover" />
+                    <img src={meal.thumbUrl} alt={meal.title} loading="lazy" decoding="async" className="aspect-[4/3] w-full bg-line object-cover" />
                     <p className="truncate p-1.5">📸 {meal.title}</p>
                   </button>
                 ))}
@@ -327,7 +327,13 @@ export default function WeekPlanner() {
           <div className="fixed inset-0 z-20 overflow-y-auto bg-black/60 p-4" onClick={() => setOpenMeal(null)}>
             <div className="mx-auto max-w-xl space-y-3" onClick={(e) => e.stopPropagation()}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={openMeal.photoUrl} alt={openMeal.title} className="w-full rounded-2xl" />
+              <img
+                src={openMeal.photoUrl}
+                alt={openMeal.title}
+                decoding="async"
+                className="w-full rounded-2xl bg-line"
+                style={{ backgroundImage: `url(${openMeal.thumbUrl})`, backgroundSize: "cover" }}
+              />
               <div className="card">
                 <div className="flex justify-between">
                   <h2 className="text-lg font-bold">{openMeal.title}</h2>
@@ -397,7 +403,13 @@ function PlanDetail({
 
         {meal && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={meal.photoUrl} alt={meal.title} className="w-full rounded-2xl" />
+          <img
+            src={meal.photoUrl}
+            alt={meal.title}
+            decoding="async"
+            className="w-full rounded-2xl bg-line"
+            style={{ backgroundImage: `url(${meal.thumbUrl})`, backgroundSize: "cover" }}
+          />
         )}
 
         <div className="card space-y-2 !p-3">

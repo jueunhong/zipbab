@@ -1,10 +1,10 @@
-import { photoError } from "@/lib/api";
+import { photoError, thumbnailFrom } from "@/lib/api";
 import { MyRecipeInputSchema, type MyRecipeInput } from "@/lib/types";
 
 /** 작성·수정 폼(multipart): data = 레시피 JSON, photo = 사진(선택), removePhoto = "1" 이면 사진 삭제 */
 export async function readMyRecipeForm(
   request: Request,
-): Promise<{ error: string } | { input: MyRecipeInput; photo: File | null; removePhoto: boolean }> {
+): Promise<{ error: string } | { input: MyRecipeInput; photo: File | null; thumb: File | null; removePhoto: boolean }> {
   const form = await request.formData();
   let json: unknown;
   try {
@@ -22,6 +22,7 @@ export async function readMyRecipeForm(
   return {
     input: parsed.data,
     photo: photo instanceof File && photo.size > 0 ? photo : null,
+    thumb: thumbnailFrom(form),
     removePhoto: form.get("removePhoto") === "1",
   };
 }

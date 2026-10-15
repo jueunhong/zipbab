@@ -27,6 +27,12 @@ export function photoError(photo: FormDataEntryValue | null, { required }: { req
   return null;
 }
 
+/** 브라우저가 함께 보낸 썸네일(선택). 이상하면 무시한다 — 썸네일이 없어도 원본으로 대신 보여준다 */
+export function thumbnailFrom(form: FormData): File | null {
+  const thumb = form.get("thumb");
+  return thumb instanceof File && thumb.size > 0 && thumb.size < 1024 * 1024 && thumb.type.startsWith("image/") ? thumb : null;
+}
+
 // 누구나 가입할 수 있으므로 한 사람이 API 요금을 과하게 쓰지 못하게 막는다 (레시피 추천 + 영양 계산 합산)
 const DAILY_AI_LIMIT = Number(process.env.RECIPE_DAILY_LIMIT) || 10;
 
